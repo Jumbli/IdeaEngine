@@ -11,9 +11,6 @@ namespace StereoKitProject1
 
         static void Main(string[] args)
         {
-            Main main;
-            Action step;
-
             // Initialize StereoKit
             SKSettings settings = new SKSettings
             {
@@ -21,42 +18,17 @@ namespace StereoKitProject1
                 assetsFolder = "Assets",
             };
 
-            bool looping = true;
             // Core application loop
             if (!SK.Initialize(settings))
                 Environment.Exit(1);
 
+            Main main;
+            System.Action step;
             main = new Main();
             main.Init();
             step = main.Update;
 
-            bool firstRun = true;
-
-            while (looping)
-            {
-                try
-                {
-
-                    if (firstRun == false)
-                    {
-                        if (!SK.Initialize(settings))
-                            Environment.Exit(1);
-                    }
-                    firstRun = false;
-
-
-                    while (SK.Step(step)) { }
-                    looping = false;
-                }
-                catch (Exception ex)
-                {
-                    main.Update();
-                    main.CreateHandMenu();
-                    step = main.Update;
-                    looping = false;
-                }
-            }
-            
+            while (SK.Step(step)) { }
             
             main.Shutdown();
 

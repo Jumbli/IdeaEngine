@@ -5,6 +5,11 @@ using System.Linq;
 
 static public class SH
 {
+    static public string topLevelSeperator = "|#|";
+    static public string arraySeperator = "{#}";
+    static public string arrayElementSeperator = "{,}";
+    static public string actionOutcomeFieldSeperator = "[/]";
+    static public string actionOutcomeArraySeperator = "[,]";
 
     static private string vs = "|+|";
     static private string ps = "|++|";

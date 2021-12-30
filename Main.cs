@@ -2,7 +2,6 @@
 using StereoKit.Framework;
 using System;
 using System.Collections.Generic;
-using My;
 
 public class Main
 {
@@ -10,38 +9,38 @@ public class Main
     static public float score;
     static public float health = 100;
 
-    public static Data.NodeModel[] standardModels =
+    public static Node.NodeModel[] standardModels =
     {
-        new Data.NodeModel("Cube", "cube.obj"),
-        new Data.NodeModel("Sphere", "sphere.obj"),
-        new Data.NodeModel("Torus", "torus.obj"),
-        new Data.NodeModel("Cone", "cone.obj"),
-        new Data.NodeModel("Cylinder", "cylinder.obj"),
-        new Data.NodeModel("Portal", "portal.obj")
+        new Node.NodeModel("Cube", "cube.obj"),
+        new Node.NodeModel("Sphere", "sphere.obj"),
+        new Node.NodeModel("Torus", "torus.obj"),
+        new Node.NodeModel("Cone", "cone.obj"),
+        new Node.NodeModel("Cylinder", "cylinder.obj"),
+        new Node.NodeModel("Portal", "portal.obj")
     };
 
-    public static Data.NodeModel[] standardImages =
+    public static Node.NodeModel[] standardImages =
     {
-        new Data.NodeModel("Start", "images\\start.png"),
-        new Data.NodeModel("Back", "images\\back.png"),
-        new Data.NodeModel("Up arrow", "images\\upArrow.png"),
-        new Data.NodeModel("Move", "images\\moveIcon.png"),
-        new Data.NodeModel("Cross", "images\\close.png"),
-        new Data.NodeModel("Tick", "images\\tick.png"),
-        new Data.NodeModel("Bin", "images\\delete.png"),
-        new Data.NodeModel("Gear", "images\\settings.png"),
-        new Data.NodeModel("Human", "images\\stand.png"),
-        new Data.NodeModel("Sound", "images\\volume.png")
+        new Node.NodeModel("Start", "images\\start.png"),
+        new Node.NodeModel("Back", "images\\back.png"),
+        new Node.NodeModel("Up arrow", "images\\upArrow.png"),
+        new Node.NodeModel("Move", "images\\moveIcon.png"),
+        new Node.NodeModel("Cross", "images\\close.png"),
+        new Node.NodeModel("Tick", "images\\tick.png"),
+        new Node.NodeModel("Bin", "images\\delete.png"),
+        new Node.NodeModel("Gear", "images\\settings.png"),
+        new Node.NodeModel("Human", "images\\stand.png"),
+        new Node.NodeModel("Sound", "images\\volume.png")
     };
 
-    public static Data.NodeModel[] standardMusic =
+    public static Node.NodeModel[] standardMusic =
     {
-        new Data.NodeModel("Dream On", "music\\DreamOn.wav"),
-        new Data.NodeModel("My Inspiration", "music\\MyInspiration.wav")
+        new Node.NodeModel("Dream On", "music\\DreamOn.wav"),
+        new Node.NodeModel("My Inspiration", "music\\MyInspiration.wav")
     };
 
 
-    static public Dictionary<int, Data.Node> Nodes = new Dictionary<int, Data.Node>();
+    static public Dictionary<int, Node> Nodes = new Dictionary<int, Node>();
     static public Dictionary<int, string> LocationNames = new Dictionary<int, string>();
     static public List<int> inventoryNodeIds = new List<int>();
     static public Sound Music;
@@ -60,6 +59,7 @@ public class Main
     private Sprite iconOpen;
 
 
+    static public Font iconFont;
     static public TextStyle generalTextStyle;
     static public TextStyle titleStyle;
     static public TextStyle uiTitleStyle;
@@ -69,12 +69,18 @@ public class Main
 
     private TextStyle handMenuTextStyle;
 
-    public static KeyboardInput keyboardInput = new KeyboardInput();
+    public static KeyboardInput keyboardInput;
 
 
     public Main()
     {
     }
+
+    ~Main()
+    {
+        Log.Info("MainExiting");
+    }
+
     public enum MenuState
     {
         EditNodes,
@@ -87,9 +93,15 @@ public class Main
     public static MenuState menuState = MenuState.Files;
     private Sprite feet;
     private Matrix feetTransform;
+
     public void Init()
     {
-        Font f = Font.FromFile("Assets\\iconFont.ttf");
+
+        //Tex cubemap = Tex.FromCubemapEquirectangular("chineseGarden.jpg", out SphericalHarmonics lighting);
+        //Renderer.SkyTex = cubemap;
+        //Renderer.SkyLight = lighting;
+
+        iconFont = Font.FromFile("Assets\\iconFont.ttf");
 
         generalTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
 
@@ -97,7 +109,7 @@ public class Main
         titleStyle = Text.MakeStyle(Font.Default, 1f * U.cm, Color.HSV(0, 0, 0));
 
         handMenuTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
-        iconTextStyle = Text.MakeStyle(f, 1f * U.cm, Color.HSV(0, 0, 0));
+        iconTextStyle = Text.MakeStyle(iconFont, 1f * U.cm, Color.HSV(0, 0, 0));
 
         uiTitleStyle = Text.MakeStyle(Font.Default, .8f * U.cm, Color.HSV(0, 0, .6f));
         uiBodyStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, .8f));
@@ -114,6 +126,8 @@ public class Main
         Sprite iconNew = Sprite.FromFile("new.png", StereoKit.SpriteType.Single);
 
         CreateHandMenu();
+
+        keyboardInput = new KeyboardInput();
 
 
         Material handleMaterial = Material.UIBox;
@@ -158,12 +172,7 @@ public class Main
                    new HandRadialLayer("orphan",
                        new HandMenuItem("Cancel|G", null, CancelDelete, HandMenuAction.Back),
                        new HandMenuItem("Delete nodes|J", null, DeleteSelectedNode, HandMenuAction.Back)
-                       ),
-                   new HandRadialLayer("Demos",
-                       new HandMenuItem("Adventure|D", null, () => Log.Info("Adventure")),
-                       new HandMenuItem("Mind map|D", null, () => Log.Info("Mind Map")),
-                       new HandMenuItem("Training|D", null, () => Log.Info("Training")),
-                       new HandMenuItem("Back|L", null, Back, HandMenuAction.Back))));
+                       )));
 
 
         handMenu.textStyle = handMenuTextStyle;
@@ -188,185 +197,179 @@ public class Main
     //private Vec3 scaleHorizontal = new Vec3(1, 0, 1);
     public void Update()
     {
-        deltaTime = Time.ElapsedUnscaledf;
-
-        leftHand = Input.Hand(Handed.Left);
-
-
-        Hierarchy.Push(Renderer.CameraRoot);
         
-
-        if (leftHand.IsJustGripped)
-        {
-            relativeLocomotionOrigin = Hierarchy.ToLocal(leftHand.palm.position);
-        }
-
-        if (leftHand.IsGripped && leftHand.palm.position.Length != 0)
-        {
-            Mesh.GenerateSphere(.03f).Draw(Material.Default, Matrix.T(relativeLocomotionOrigin));
-
-            locomotionDirection = Hierarchy.ToLocal(leftHand.palm.position) - relativeLocomotionOrigin;
-            locomotionDirection = Hierarchy.ToWorldDirection(locomotionDirection);
-
-            Renderer.CameraRoot = Matrix.T(
-                Renderer.CameraRoot.Pose.position + locomotionDirection * deltaTime * locomotionDirection.Length * 50
-                );
-
-        }
-
-        Hierarchy.Pop();
-
         try
         {
-            musicInst.Position = Input.Head.position + Vec3.Up;
-        }
-        catch (Exception)
-        {
-        }
+            deltaTime = Time.ElapsedUnscaledf;
+            leftHand = Input.Hand(Handed.Left);
 
-        if (errorMessage != "")
-        {
-            if (handMenu.active)
-                handMenu.Close();
+            Hierarchy.Push(Renderer.CameraRoot);
 
-            errorPose.position = Input.Head.position + Input.Head.Forward * .5f;
-            errorPose.orientation = Quat.LookAt(errorPose.position, Input.Head.position);
-            UI.WindowBegin("ErrorWindow", ref errorPose, UIWin.Body); ;
-            UI.LayoutReserve(V.XY(.2f, .0001f));
-
-            UI.PushTextStyle(uiTitleStyle);
-            UI.Label(errorMessage);
-            UI.PopTextStyle();
-
-            if (UI.Button("Close"))
-                errorMessage = "";
-            UI.WindowEnd();
-            return;
-        }
-
-        if (Platform.FilePickerVisible == false)
-        {
-            List<int> keys = new List<int>(Nodes.Keys);
-
-            if (SK.System.displayType == Display.Opaque)
-                Default.MeshCube.Draw(floorMaterial, floorTransform);
-
-            feet.Draw(feetTransform);
-
-            if (menuState == MenuState.EditNodes)
+            if (leftHand.IsJustGripped)
             {
+                relativeLocomotionOrigin = Hierarchy.ToLocal(leftHand.palm.position);
+            }
 
+            if (leftHand.IsGripped && leftHand.palm.position.Length != 0)
+            {
+                Mesh.GenerateSphere(.03f).Draw(Material.Default, Matrix.T(relativeLocomotionOrigin));
 
-                int nodeCount = Nodes.Count;
+                locomotionDirection = Hierarchy.ToLocal(leftHand.palm.position) - relativeLocomotionOrigin;
+                locomotionDirection = Hierarchy.ToWorldDirection(locomotionDirection);
 
-                float closestRightDistance = 99999999999;
+                Renderer.CameraRoot = Matrix.T(
+                    Renderer.CameraRoot.Pose.position + locomotionDirection * deltaTime * locomotionDirection.Length * 50
+                    );
 
-                float distance = 0;
+            }
 
-                if (handMenu.active == false && scalingNode == false)
+            Hierarchy.Pop();
+            try
+            {
+                musicInst.Position = Input.Head.position + Vec3.Up;
+            }
+            catch (Exception ex)
+            {
+                Log.Err(ex.Source + ":" + ex.Message);
+            }
+
+            if (errorMessage != "")
+            {
+                if (handMenu.active)
+                    handMenu.Close();
+
+                errorPose.position = Input.Head.position + Input.Head.Forward * .5f;
+                errorPose.orientation = Quat.LookAt(errorPose.position, Input.Head.position);
+                UI.WindowBegin("ErrorWindow", ref errorPose, UIWin.Body); ;
+                UI.LayoutReserve(V.XY(.2f, .0001f));
+
+                UI.PushTextStyle(uiTitleStyle);
+                UI.Label(errorMessage);
+                UI.PopTextStyle();
+
+                if (UI.Button("Close"))
+                    errorMessage = "";
+                UI.WindowEnd();
+                return;
+            }
+
+            if (Platform.FilePickerVisible == false)
+            {
+                List<int> keys = new List<int>(Nodes.Keys);
+
+                if (SK.System.displayType == Display.Opaque)
+                    Default.MeshCube.Draw(floorMaterial, floorTransform);
+
+                feet.Draw(feetTransform);
+
+                if (menuState == MenuState.EditNodes)
                 {
-                    selectedNodeRightId = -1;
-                    foreach (int key in keys) // First find closest
+                    int nodeCount = Nodes.Count;
+
+                    float closestRightDistance = 99999999999;
+
+                    float distance = 0;
+
+                    if (handMenu.active == false && scalingNode == false)
                     {
-                        Nodes[key].inFocus = false;
-                        if (Nodes[key].locationId == locationId)
+                        selectedNodeRightId = -1;
+                        foreach (int key in keys) // First find closest
                         {
-                            distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Nodes[key].pose.position);
-                            if (distance < closestRightDistance && distance < Nodes[key].radius + .1f)
+                            Nodes[key].inFocus = false;
+                            if (Nodes[key].locationId == locationId)
                             {
-                                selectedNodeRightId = key;
-                                closestRightDistance = distance;
-                            }
-                            else
-                            {
-
-                                if (Nodes[key].propertiesDisplayed)
+                                distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Nodes[key].pose.position);
+                                if (distance < closestRightDistance && distance < Nodes[key].radius + .1f)
                                 {
-                                    distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt,
-                                        Nodes[key].propertiesPose.position +
-                                        Nodes[key].propertiesPose.Up * -.12f);
-                                    /*
-                                    Mesh.GenerateSphere(.05f).Draw(Material.Default, Matrix.T(
-                                        Nodes[key].propertiesPose.position +
-                                        Nodes[key].propertiesPose.Up * -.12f)
-                                        );
-                                    */
+                                    selectedNodeRightId = key;
+                                    closestRightDistance = distance;
+                                }
+                                else
+                                {
 
-                                    if (distance < closestRightDistance && distance < Nodes[key].MaxPropertyWidth.Length)
+                                    if (Nodes[key].propertiesDisplayed)
                                     {
-                                        selectedNodeRightId = key;
-                                        closestRightDistance = distance;
-                                    }
+                                        distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt,
+                                            Nodes[key].propertiesPose.position +
+                                            Nodes[key].propertiesPose.Up * -.12f);
 
+
+                                        if (distance < closestRightDistance && distance < Nodes[key].MaxPropertyWidth.Length)
+                                        {
+                                            selectedNodeRightId = key;
+                                            closestRightDistance = distance;
+                                        }
+
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    scalingNode = false;
+                    if (selectedNodeRightId >= 0)
+                    {
+                        Nodes[selectedNodeRightId].inFocus = true;
+                        if (Nodes[selectedNodeRightId].grabbed || true)
+                        {
+                            if (Input.Hand(Handed.Right).pinchPt.Length != 0f && Input.Hand(Handed.Left).pinchPt.Length != 0)
+                            {
+                                if (Input.Hand(Handed.Right).IsJustPinched == true ||
+                                    Input.Hand(Handed.Left).IsJustPinched == true)
+                                {
+                                    pinchScaleInitialDistance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6;
+                                    pinchScaleInitialScale = Nodes[selectedNodeRightId].activeState.nodeScale;
+                                }
+
+                                if (Input.Hand(Handed.Right).IsPinched == true &&
+                                    Input.Hand(Handed.Left).IsPinched == true)
+                                {
+                                    scalingNode = true;
+                                    Nodes[selectedNodeRightId].activeState.nodeScale = pinchScaleInitialScale +
+                                        (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6f)
+                                        - pinchScaleInitialDistance;
                                 }
                             }
-
                         }
                     }
                 }
-                scalingNode = false;
-                if (selectedNodeRightId >= 0)
+
+                foreach (int key in keys) // Now draw
                 {
-                    Nodes[selectedNodeRightId].inFocus = true;
-                    if (Nodes[selectedNodeRightId].grabbed || true)
+                    if (Nodes[key].locationId == locationId)
                     {
-                        if (Input.Hand(Handed.Right).pinchPt.Length != 0f && Input.Hand(Handed.Left).pinchPt.Length != 0)
-                        {
-                            if (Input.Hand(Handed.Right).IsJustPinched == true ||
-                                Input.Hand(Handed.Left).IsJustPinched == true)
-                            {
-                                pinchScaleInitialDistance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6;
-                                pinchScaleInitialScale = Nodes[selectedNodeRightId].activeState.nodeScale;
-                            }
-
-                            if (Input.Hand(Handed.Right).IsPinched == true &&
-                                Input.Hand(Handed.Left).IsPinched == true)
-                            {
-                                scalingNode = true;
-                                Nodes[selectedNodeRightId].activeState.nodeScale = pinchScaleInitialScale +
-                                    (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6f)
-                                    - pinchScaleInitialDistance;
-                            }
-                        }
+                        if (Nodes[key].visible || menuState == MenuState.EditNodes)
+                            Nodes[key].Draw();
                     }
                 }
+
+                keyboardInput.CheckValidInputs();
+
+
+
+
             }
+            HandText();
 
-            foreach (int key in keys) // Now draw
-            {
-                if (Nodes[key].locationId == locationId)
-                {
-                    if (Nodes[key].visible || menuState == MenuState.EditNodes)
-                        Nodes[key].Draw();
-                }
-            }
-
-
-
-
+        } catch (Exception ex)
+        {
+            Log.Err(ex.Source + ":" + ex.Message);
         }
-        ToolTip();
 
     }
     static bool deletingNode = false;
 
 
 
-    public static string toolTip = "";
-    private void ToolTip()
+    private void HandText()
     {
         
         Hand hand = Input.Hand(Handed.Right);
         Vec3 pos = hand.palm.position + hand.palm.Forward * -.05f;
 
         string text = "";
-        if (toolTip != "")
-            text = toolTip;
-        else
-        {
-            text = "Health: " + health + "%\n"
-                + "Score: " + score;
-        }
+        text = "Health: " + health + "%\n"
+            + "Score: " + score;
 
         if (Vec3.Dot(hand.palm.Forward, (hand.palm.position - Input.Head.position).Normalized) > .6f)
         {
@@ -382,16 +385,11 @@ public class Main
     }
 
 
-    void Load()
-    {
-
-    }
-
     private void AddNode()
     {
         Hand hand = Input.Hand(Handed.Right);
         Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
-        Data.Node newNode = new Data.Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)));
+        Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)));
 
         Nodes.Add(newNode.id, newNode);
     }
@@ -400,7 +398,7 @@ public class Main
     {
         Hand hand = Input.Hand(Handed.Right);
         Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
-        Data.Node newNode = new Data.Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
+        Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
 
         Nodes.Add(newNode.id, newNode);
     }
@@ -438,7 +436,7 @@ public class Main
         inventoryNodeIdHeld = -1;
         score = 0;
         health = 100;
-        foreach (KeyValuePair<int, Data.Node> kvp in Nodes)
+        foreach (KeyValuePair<int, Node> kvp in Nodes)
             kvp.Value.InitForNewPlay(saveChangesInEditMode);
         RedrawInventory();
     }
@@ -476,6 +474,59 @@ public class Main
         }
     }
 
+    private void LoadMindMap(string filename)
+    {
+        try
+        {
+            ResetNodes();
+            mindMapFilename = filename;
+            Default.SoundClick.Play(Input.Head.position);
+            byte[] bytes = Platform.ReadFileBytes(filename);
+            StopMusic();
+
+            string input = System.Text.Encoding.UTF8.GetString(bytes);
+
+            Nodes = new Dictionary<int, Node>();
+            Node newNode;
+            string[] nodesData = input.Split(nodeSeparator);
+            locationId = 0;
+            foreach (string nodeData in nodesData)
+            {
+                newNode = new Node(nodeData);
+                Nodes.Add(newNode.id, newNode);
+                if (newNode.isLocation)
+                {
+                    Main.LocationNames[newNode.id] = newNode.activeState.name;
+                    if (locationId == 0)
+                        locationId = newNode.id;
+                }
+            }
+
+            if (filename == "Assets\\demo.dat")
+            {
+                handMenu.Reset();
+                handMenu.SelectLayer("Nodes");
+                //handMenu.SelectLayer("Play");
+                Main.menuState = MenuState.EditNodes;
+            }
+            else
+            {
+                if (filename == "Assets\\startup.dat")
+                {
+                    handMenu.Reset();
+                    menuState = MenuState.Files;
+                }
+                else
+                    menuState = MenuState.EditNodes;
+            }
+
+            GoToLocation(locationId);
+        } catch (Exception ex)
+        {
+            Log.Err(ex.Source + ":" + ex.Message);
+        }
+    }
+
     private void cancelLoadMindMap()
     {
         handMenu.Back();
@@ -488,7 +539,7 @@ public class Main
     private void SaveMindMap(string filename)
     {
         List<string> nodeDetails = new List<string>();
-        foreach (KeyValuePair<int, Data.Node> kvp in Nodes)
+        foreach (KeyValuePair<int, Node> kvp in Nodes)
             nodeDetails.Add(kvp.Value.Serialise());
 
         string output = string.Join(nodeSeparator, nodeDetails.ToArray());
@@ -496,49 +547,7 @@ public class Main
         Platform.WriteFile(filename, System.Text.Encoding.UTF8.GetBytes(output));
     }
 
-    private void LoadMindMap(string filename)
-    {
-        ResetNodes();
-        mindMapFilename = filename;
-        Default.SoundClick.Play(Input.Head.position);
-        byte[] bytes = Platform.ReadFileBytes(filename);
-        StopMusic();
 
-        string input = System.Text.Encoding.UTF8.GetString(bytes);
-
-        Nodes = new Dictionary<int, Data.Node>();
-        Data.Node newNode;
-        string[] nodesData = input.Split(nodeSeparator);
-        locationId = 0;
-        foreach (string nodeData in nodesData)
-        {
-            newNode = new Data.Node(nodeData);
-            Nodes.Add(newNode.id, newNode);
-            if (newNode.isLocation) {
-                Main.LocationNames[newNode.id] = newNode.activeState.name;
-                if (locationId == 0)
-                    locationId = newNode.id;
-            }
-        }
-
-        if (filename == "Assets\\demo.dat")
-        {
-            handMenu.Reset();
-            handMenu.SelectLayer("Nodes");
-            //handMenu.SelectLayer("Play");
-            Main.menuState = MenuState.EditNodes;
-        }
-        else
-        {
-            if (filename == "Assets\\startup.dat") {
-                handMenu.Reset();
-                menuState = MenuState.Files;
-            } else
-                menuState = MenuState.EditNodes;
-        }
-        
-        GoToLocation(locationId);
-    }
 
     private void NewMindMap()
     {
@@ -567,8 +576,10 @@ public class Main
 
     private void ResetNodes()
     {
-        Nodes = new Dictionary<int, Data.Node>();
-        Data.nodeId = 0;
+        
+        LocationNames = new Dictionary<int, string>();
+        Nodes = new Dictionary<int, Node>();
+        Node.maxNodeId = 0;
         selectedNodeRightId = -1;
 
         inventoryNodeIds = new List<int>();
@@ -610,7 +621,7 @@ public class Main
         StopMusic();
         Vec3 position = Input.Head.position + Input.Head.Forward * .4f;
 
-        Data.Node newNode = new Data.Node(true, nameMe, new Pose(position, Quat.LookAt(position, Input.Head.position)), false, "cube.obj");
+        Node newNode = new Node(true, nameMe, new Pose(position, Quat.LookAt(position, Input.Head.position)), false, "cube.obj");
         Main.Nodes.Add(newNode.id, newNode);
         Main.locationId = newNode.locationId = newNode.id;
     }
@@ -623,7 +634,7 @@ public class Main
             int savedLocation = locationId;
             Main.NewLocation();
             Vec3 position = Input.Head.position + Input.Head.Forward * .4f + Input.Head.Right * .4f;
-            Data.Node newNode = new Data.Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
+            Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
             newNode.destinationId = savedLocation;
 
             Nodes.Add(newNode.id, newNode);
@@ -669,7 +680,7 @@ public class Main
     {
         int portalCount = 0;
 
-        foreach (KeyValuePair<int, Data.Node> kvp in Nodes)
+        foreach (KeyValuePair<int, Node> kvp in Nodes)
         {
             if (kvp.Value.isPortal && kvp.Value.destinationId == locationId)
                 portalCount++;
@@ -692,7 +703,7 @@ public class Main
     private void DeleteOrphans()
     {
         List<int> keys = new List<int>();
-        foreach (KeyValuePair<int, Data.Node> kvp in Nodes)
+        foreach (KeyValuePair<int, Node> kvp in Nodes)
         {
             if (kvp.Value.locationId == Nodes[selectedNodeRightId].destinationId)
                 keys.Add(kvp.Key);
@@ -722,12 +733,18 @@ public class Main
         try
         {
             Main.StopMusic();
-            string filename = Main.Nodes[locationId].activeState.musicFilename;
-            if (filename != "")
-                Main.musicInst = Sound.FromFile(filename).Play(Main.Nodes[locationId].pose.position, .2f);
+            if (Main.Nodes.ContainsKey(locationId))
+            {
+                string filename = Main.Nodes[locationId].activeState.musicFilename;
+                if (filename != "")
+                {
+                    Main.musicInst = Sound.FromFile(filename).Play(Main.Nodes[locationId].pose.position, .2f);
+                }
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Err(ex.Source + ":" + ex.Message);
         }
     }
 
@@ -736,8 +753,9 @@ public class Main
         try
         {
             Main.musicInst.Stop();
-        } catch (Exception)
+        } catch (Exception ex)
         {
+            Log.Err(ex.Source + ":" + ex.Message);
         }
     }
 

@@ -107,14 +107,23 @@ namespace My.Framework
 		/// <summary>Part of IStepper, you shouldn't be calling this yourself.</summary>
 		public void Step()
 		{
-			Hand hand = Input.Hand(Handed.Right);
-			bool facing = HandFacingHead(hand);
+			try
+			{
+				
+				Hand hand = Input.Hand(Handed.Right);
+				bool facing = HandFacingHead(hand);
 
-			if (facing && !active)
-				StepMenuIndicator(hand);
+				//Log.Info(facing + ":" + active);
 
-			if (active)
-				StepMenu(hand);
+				if (facing && !active)
+					StepMenuIndicator(hand);
+
+				if (active)
+					StepMenu(hand);
+			} catch (Exception ex)
+            {
+				Log.Err(ex.Source + ":" + ex.Message);
+            }
 		}
 
 		/// <summary>HandMenuRadial is always Enabled.</summary>
@@ -168,78 +177,83 @@ namespace My.Framework
 		private string[] bits;
 		private const float menuScale = 1f;
 		void StepMenu(Hand hand)
-			
 		{
-			// Animate the menu a bit
-			float time = (Time.Elapsedf * 24);
-			menuPose.position = Vec3.Lerp(menuPose.position, destPose.position, time);
-			menuPose.orientation = Quat.Slerp(menuPose.orientation, destPose.orientation, time);
-			activation = SKMath.Lerp(activation, menuScale, time);
-
-			// Pre-calculate some circle traversal values
-			HandRadialLayer layer = layers[activeLayer];
-			int count = layer.items.Length;
-
-			float step = 360 / count;
-			float halfStep = step / 2;
-
-			// Push the Menu's pose onto the stack, so we can draw, and work
-			// in local space.
-			Hierarchy.Push(menuPose.ToMatrix(activation));
-
-			// Calculate the status of the menu!
-			Vec3 tipWorld = hand[FingerId.Index, JointId.Tip].position;
-			Vec3 tipLocal = Hierarchy.ToLocal(tipWorld);
-			float selectDist = minDist + ((maxDist - minDist) * .2f);
-
-			float magSq = tipLocal.MagnitudeSq;
-			bool onMenu = tipLocal.z > -0.02f && tipLocal.z < 0.02f;
-			bool focused = onMenu && magSq > minDist * minDist;
-			bool selected = onMenu && magSq > selectDist * selectDist;
-			bool cancel = magSq > maxDist * maxDist;
-
-			// Find where our finger is pointing to, and draw that
-			float fingerAngle = (float)Math.Atan2(tipLocal.y, tipLocal.x) * Units.rad2deg - (layer.startAngle + angleOffset);
-			while (fingerAngle < 0) fingerAngle += 360;
-			int angleId = (int)(fingerAngle / step);
-			float planeDistance = Math.Max(.01f,.05f - Math.Abs(tipLocal.z));
-			
-			Lines.Add(Vec3.Zero, new Vec3(tipLocal.x, tipLocal.y, 0), Color.White, 0.1f * planeDistance);
-
-			// Draw the menu inner and outer circles
-			Lines.Add(circle);
-			Lines.Add(innerCircle);
-
-			// Now draw each of the menu items!
-			
-			for (int i = 0; i < count; i++)
+			try
 			{
-				bits = layer.items[i].name.Split('|');
-				bits[0] = bits[0].Replace("XXX", Main.actionRequested);
-				
-				float currAngle = i * step + layer.startAngle + angleOffset;
-				bool highlightText = focused && angleId == i;
-				bool highlightLine = highlightText || (focused && (angleId + 1) % count == i);
-				Vec3 dir = Vec3.AngleXY(currAngle);
-				Lines.Add(dir * minDist, dir * maxDist, highlightLine ? Color.White : Color.White * 0.5f, highlightLine ? 0.002f : 0.001f);
-				Text.Add(bits[0], Matrix.TRS(Vec3.AngleXY(currAngle + halfStep) * (midDist + .015f), Quat.FromAngles(0, 0, currAngle + halfStep - 90), highlightText ? 1.2f : 1), textStyle, TextAlign.BottomCenter);
+				// Animate the menu a bit
+				float time = (Time.Elapsedf * 24);
+				menuPose.position = Vec3.Lerp(menuPose.position, destPose.position, time);
+				menuPose.orientation = Quat.Slerp(menuPose.orientation, destPose.orientation, time);
+				activation = SKMath.Lerp(activation, menuScale, time);
 
-				if (bits.Length > 1)
-					Text.Add(bits[1], Matrix.TRS(Vec3.AngleXY(currAngle + halfStep) * (midDist - .015f), Quat.FromAngles(0, 0, currAngle + halfStep - 90), highlightText ? 1.2f : 1), iconStyle, TextAlign.BottomCenter);
-				//layer.items[i].image.Draw(Matrix.TRS(Vec3.AngleXY(currAngle + halfStep) * (midDist * 1.4f), Quat.FromAngles(0, 0, currAngle + halfStep - 90), highlightText ? .06f : .05f));
+				// Pre-calculate some circle traversal values
+				HandRadialLayer layer = layers[activeLayer];
+				int count = layer.items.Length;
 
+				float step = 360 / count;
+				float halfStep = step / 2;
+
+				// Push the Menu's pose onto the stack, so we can draw, and work
+				// in local space.
+				Hierarchy.Push(menuPose.ToMatrix(activation));
+
+				// Calculate the status of the menu!
+				Vec3 tipWorld = hand[FingerId.Index, JointId.Tip].position;
+				Vec3 tipLocal = Hierarchy.ToLocal(tipWorld);
+				float selectDist = minDist + ((maxDist - minDist) * .2f);
+
+				float magSq = tipLocal.MagnitudeSq;
+				bool onMenu = tipLocal.z > -0.02f && tipLocal.z < 0.02f;
+				bool focused = onMenu && magSq > minDist * minDist;
+				bool selected = onMenu && magSq > selectDist * selectDist;
+				bool cancel = magSq > maxDist * maxDist;
+
+				// Find where our finger is pointing to, and draw that
+				float fingerAngle = (float)Math.Atan2(tipLocal.y, tipLocal.x) * Units.rad2deg - (layer.startAngle + angleOffset);
+				while (fingerAngle < 0) fingerAngle += 360;
+				int angleId = (int)(fingerAngle / step);
+				float planeDistance = Math.Max(.01f, .05f - Math.Abs(tipLocal.z));
+
+				Lines.Add(Vec3.Zero, new Vec3(tipLocal.x, tipLocal.y, 0), Color.White, 0.1f * planeDistance);
+
+				// Draw the menu inner and outer circles
+				Lines.Add(circle);
+				Lines.Add(innerCircle);
+
+				// Now draw each of the menu items!
+
+				for (int i = 0; i < count; i++)
+				{
+					bits = layer.items[i].name.Split('|');
+					bits[0] = bits[0].Replace("XXX", Main.actionRequested);
+
+					float currAngle = i * step + layer.startAngle + angleOffset;
+					bool highlightText = focused && angleId == i;
+					bool highlightLine = highlightText || (focused && (angleId + 1) % count == i);
+					Vec3 dir = Vec3.AngleXY(currAngle);
+					Lines.Add(dir * minDist, dir * maxDist, highlightLine ? Color.White : Color.White * 0.5f, highlightLine ? 0.002f : 0.001f);
+					Text.Add(bits[0], Matrix.TRS(Vec3.AngleXY(currAngle + halfStep) * (midDist + .015f), Quat.FromAngles(0, 0, currAngle + halfStep - 90), highlightText ? 1.2f : 1), textStyle, TextAlign.BottomCenter);
+
+					if (bits.Length > 1)
+						Text.Add(bits[1], Matrix.TRS(Vec3.AngleXY(currAngle + halfStep) * (midDist - .015f), Quat.FromAngles(0, 0, currAngle + halfStep - 90), highlightText ? 1.2f : 1), iconStyle, TextAlign.BottomCenter);
+
+				}
+
+				// Done with local work
+				Hierarchy.Pop();
+
+				// Execute any actions that were discovered
+
+				// But not if we're still in the process of animating, interaction values 
+				// could be pretty incorrect when we're still lerping around.
+				if (activation < 0.95f) return;
+				if (selected) SelectItem(angleId, layer.items[angleId], tipWorld, (angleId + 0.5f) * step);
+				if (cancel) Close();
 			}
-
-			// Done with local work
-			Hierarchy.Pop();
-
-			// Execute any actions that were discovered
-
-			// But not if we're still in the process of animating, interaction values 
-			// could be pretty incorrect when we're still lerping around.
-			if (activation < 0.95f) return;
-			if (selected) SelectItem(angleId, layer.items[angleId], tipWorld, (angleId + 0.5f) * step);
-			if (cancel) Close();
+			catch (Exception ex)
+            {
+				Log.Err(ex.Source + ":" + ex.Message);
+			}
 		}
 
 		public void SelectLayer(string name)
@@ -261,15 +275,21 @@ namespace My.Framework
 		public int lastIdSelected;
 		void SelectItem(int id, HandMenuItem item, Vec3 at, float fromAngle)
 		{
-			lastIdSelected = id;
-			if (item.action == HandMenuAction.Close) Close();
-			else if (item.action == HandMenuAction.Layer) SelectLayer(item.layerName);
-			else if (item.action == HandMenuAction.Back) Back();
+			try
+			{
+				lastIdSelected = id;
+				if (item.action == HandMenuAction.Close) Close();
+				else if (item.action == HandMenuAction.Layer) SelectLayer(item.layerName);
+				else if (item.action == HandMenuAction.Back) Back();
 
-			if (item.action == HandMenuAction.Back || item.action == HandMenuAction.Layer)
-				Reposition(at, fromAngle);
+				if (item.action == HandMenuAction.Back || item.action == HandMenuAction.Layer)
+					Reposition(at, fromAngle);
 
-			item.callback?.Invoke();
+				item.callback?.Invoke();
+			} catch (Exception ex)
+            {
+				Log.Err(ex.Source + ":" + ex.Message);
+            }
 		}
 
 		void Reposition(Vec3 at, float fromAngle)
