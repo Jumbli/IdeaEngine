@@ -70,29 +70,31 @@ public class KeyboardInput
 
     public void CheckValidInputs()
     {
-        // Find latest request
-        string[] keys = requests.Keys.ToArray();
-        float frameTime = Time.TotalUnscaledf;
+        try { 
+            // Find latest request
+            string[] keys = requests.Keys.ToArray();
+            float frameTime = Time.TotalUnscaledf;
 
-        mostRecentlyAddedRequestKey = "";
-        mostRecentlyAddedRequestTime = 0;
+            mostRecentlyAddedRequestKey = "";
+            mostRecentlyAddedRequestTime = 0;
 
-        foreach (string key in keys)
-        {
-            if (requests[key].timelastRequested < frameTime) // Input no longer being requested
+            foreach (string key in keys)
             {
-                requests.Remove(key);
-            }
-            else
-            {
-                if (requests[key].timeAdded > mostRecentlyAddedRequestTime)
+                if (requests[key].timelastRequested < frameTime) // Input no longer being requested
                 {
-                    mostRecentlyAddedRequestKey = key;
-                    mostRecentlyAddedRequestTime = requests[key].timeAdded;
+                    requests.Remove(key);
+                }
+                else
+                {
+                    if (requests[key].timeAdded > mostRecentlyAddedRequestTime)
+                    {
+                        mostRecentlyAddedRequestKey = key;
+                        mostRecentlyAddedRequestTime = requests[key].timeAdded;
+                    }
                 }
             }
         }
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
     }
     public string mostRecentlyAddedRequestKey = "";
@@ -100,129 +102,132 @@ public class KeyboardInput
 
     public bool Update(string inputKey, bool relative, Vec3 position, Quat orientation, float offset, ref string subject)
     {
+     
         bool keyPressed = false;
-        char key;
+        try { 
+            char key;
 
-        if (requests.ContainsKey(inputKey) == false) // Is this a new request
-        {
-            requestStack.Push(inputKey);
-            requests.Add(inputKey, new Request(pose));
-            if (relative)
+            if (requests.ContainsKey(inputKey) == false) // Is this a new request
             {
-                Main.keyboardInput.pose.position = position + Vec3.Up * offset;
-                Main.keyboardInput.pose.orientation = orientation * Quat.LookAt(position, Hierarchy.ToLocal(Input.Head.position) + new Vec3(0, .5f, 0));
-            } else
-            {
-                Main.keyboardInput.pose.orientation = Quat.Identity * Quat.LookAt(position, Input.Head.position + new Vec3(0, .5f, 0));
-                Main.keyboardInput.pose.position = position + (Main.keyboardInput.pose.orientation * Vec3.Up) * offset;
-            }
-            return false;
-        }
-        requests[inputKey] = requests[inputKey].UpdateRequest(); // Confirm it's still in use
-
-        if (inputKey != mostRecentlyAddedRequestKey)
-            return false;
-
-
-        if (virtualKeystrokes != "") {
-            key = virtualKeystrokes[0];
-            virtualKeystrokes = virtualKeystrokes.Substring(1);
-        } else 
-            key = Input.TextConsume();
-
-        if (key != '\0')
-        {
-            keyPressed = true;
-            switch (key)
-            {
-                case (char)Key.Backspace:
-                    if (subject.Length > 0)
-                        subject = subject.Substring(0, subject.Length - 1);
-                    break;
-                case (char)Key.Left:
-                    break;
-                case (char)Key.Right:
-                    break;
-                case (char)Key.End:
-                    break;
-                case (char)Key.Home:
-                    break;
-                case (char)Key.Del:
-                    break;
-                case (char)Key.Tab:
-                    subject += " ";
-                    break;
-                case (char)Key.Return:
-                    subject += "\n\r";
-                    break;
-                default:
-                    subject += key;
-                    break;
-            }
-        }
-        //pose.position = Input.Head.position - Vec3.Up * -.2f + Vec3.Forward * -.1f;
-        //pose.orientation = Input.Head.orientation;
-        int inx;
-        int rowCount = 0;
-        string rowOfKeys;
-        UI.WindowBegin("KeyboardInput", ref pose, UIWin.Body,UIMove.Exact);
-        foreach (string row in keys)
-        {
-            inx = 0;
-
-            rowCount++;
-            if (capsLock)
-                rowOfKeys = row.ToUpper();
-            else
-                rowOfKeys = row;
-
-            foreach (char c in rowOfKeys)
-            {
-                if (c == ' ')
-                    UI.Label("  ");
-                else
+                requestStack.Push(inputKey);
+                requests.Add(inputKey, new Request(pose));
+                if (relative)
                 {
-                    if (specialKeys.ContainsKey((Key)c))
-                    {
-                        switch ((Key)c)
-                        {
-                            case Key.Shift:
-                                UI.PushTextStyle(iconTextStyle);
-                                UI.Toggle(specialKeys[(Key)c], ref capsLock);
-                                UI.PopTextStyle();
-                                break;
+                    Main.keyboardInput.pose.position = position + Vec3.Up * offset;
+                    Main.keyboardInput.pose.orientation = orientation * Quat.LookAt(position, Hierarchy.ToLocal(Input.Head.position) + new Vec3(0, .5f, 0));
+                } else
+                {
+                    Main.keyboardInput.pose.orientation = Quat.Identity * Quat.LookAt(position, Input.Head.position + new Vec3(0, .5f, 0));
+                    Main.keyboardInput.pose.position = position + (Main.keyboardInput.pose.orientation * Vec3.Up) * offset;
+                }
+                return false;
+            }
+            requests[inputKey] = requests[inputKey].UpdateRequest(); // Confirm it's still in use
 
-                            case Key.Tab:
-                                if (UI.Button(" ", buttonSize * V.XY(13, 1)))
-                                    virtualKeystrokes += " ";
-                                break;
-                            default:
-                                UI.PushTextStyle(iconTextStyle);
-                                if (UI.Button("" + specialKeys[(Key)c]))
-                                {
-                                    virtualKeystrokes += c;
-                                }
-                                UI.PopTextStyle();
-                                break;
-                        }
-                        
-                    }
+            if (inputKey != mostRecentlyAddedRequestKey)
+                return false;
+
+
+            if (virtualKeystrokes != "") {
+                key = virtualKeystrokes[0];
+                virtualKeystrokes = virtualKeystrokes.Substring(1);
+            } else 
+                key = Input.TextConsume();
+
+            if (key != '\0')
+            {
+                keyPressed = true;
+                switch (key)
+                {
+                    case (char)Key.Backspace:
+                        if (subject.Length > 0)
+                            subject = subject.Substring(0, subject.Length - 1);
+                        break;
+                    case (char)Key.Left:
+                        break;
+                    case (char)Key.Right:
+                        break;
+                    case (char)Key.End:
+                        break;
+                    case (char)Key.Home:
+                        break;
+                    case (char)Key.Del:
+                        break;
+                    case (char)Key.Tab:
+                        subject += " ";
+                        break;
+                    case (char)Key.Return:
+                        subject += "\n\r";
+                        break;
+                    default:
+                        subject += key;
+                        break;
+                }
+            }
+            //pose.position = Input.Head.position - Vec3.Up * -.2f + Vec3.Forward * -.1f;
+            //pose.orientation = Input.Head.orientation;
+            int inx;
+            int rowCount = 0;
+            string rowOfKeys;
+            UI.WindowBegin("KeyboardInput", ref pose, UIWin.Body,UIMove.Exact);
+            foreach (string row in keys)
+            {
+                inx = 0;
+
+                rowCount++;
+                if (capsLock)
+                    rowOfKeys = row.ToUpper();
+                else
+                    rowOfKeys = row;
+
+                foreach (char c in rowOfKeys)
+                {
+                    if (c == ' ')
+                        UI.Label("  ");
                     else
                     {
-                        if (UI.Button("" + c))
+                        if (specialKeys.ContainsKey((Key)c))
                         {
-                            virtualKeystrokes += c;
+                            switch ((Key)c)
+                            {
+                                case Key.Shift:
+                                    UI.PushTextStyle(iconTextStyle);
+                                    UI.Toggle(specialKeys[(Key)c], ref capsLock);
+                                    UI.PopTextStyle();
+                                    break;
+
+                                case Key.Tab:
+                                    if (UI.Button(" ", buttonSize * V.XY(13, 1)))
+                                        virtualKeystrokes += " ";
+                                    break;
+                                default:
+                                    UI.PushTextStyle(iconTextStyle);
+                                    if (UI.Button("" + specialKeys[(Key)c]))
+                                    {
+                                        virtualKeystrokes += c;
+                                    }
+                                    UI.PopTextStyle();
+                                    break;
+                            }
+                        
+                        }
+                        else
+                        {
+                            if (UI.Button("" + c))
+                            {
+                                virtualKeystrokes += c;
+                            }
                         }
                     }
+                    if (inx++ < row.Length - 1)
+                        UI.SameLine();
+
                 }
-                if (inx++ < row.Length - 1)
-                    UI.SameLine();
-
             }
+
+            UI.WindowEnd();
         }
-
-        UI.WindowEnd();
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
         return keyPressed;
 
     }

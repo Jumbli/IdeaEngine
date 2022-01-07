@@ -97,90 +97,97 @@ public class Main
     public void Init()
     {
 
-        //Tex cubemap = Tex.FromCubemapEquirectangular("chineseGarden.jpg", out SphericalHarmonics lighting);
-        //Renderer.SkyTex = cubemap;
-        //Renderer.SkyLight = lighting;
+        try { 
 
-        iconFont = Font.FromFile("Assets\\iconFont.ttf");
+            //Tex cubemap = Tex.FromCubemapEquirectangular("chineseGarden.jpg", out SphericalHarmonics lighting);
+            //Renderer.SkyTex = cubemap;
+            //Renderer.SkyLight = lighting;
 
-        generalTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
+            iconFont = Font.FromFile("Assets\\iconFont.ttf");
 
-
-        titleStyle = Text.MakeStyle(Font.Default, 1f * U.cm, Color.HSV(0, 0, 0));
-
-        handMenuTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
-        iconTextStyle = Text.MakeStyle(iconFont, 1f * U.cm, Color.HSV(0, 0, 0));
-
-        uiTitleStyle = Text.MakeStyle(Font.Default, .8f * U.cm, Color.HSV(0, 0, .6f));
-        uiBodyStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, .8f));
-        UI.PushTextStyle(uiBodyStyle);
-
-        floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
-        floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
-        floorMaterial.Transparency = Transparency.Blend;
-
-        feet = Sprite.FromFile("footprints.png",SpriteType.Single);
-        feetTransform = Matrix.TRS(V.XYZ(0, -1.45f, 0), Quat.FromAngles(90,180,0) ,.35f * new Vec3(feet.NormalizedDimensions.x, feet.NormalizedDimensions.y,1));
-
-        iconOpen = Sprite.FromFile("open.png", StereoKit.SpriteType.Single);
-        Sprite iconNew = Sprite.FromFile("new.png", StereoKit.SpriteType.Single);
-
-        CreateHandMenu();
-
-        keyboardInput = new KeyboardInput();
+            generalTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
 
 
-        Material handleMaterial = Material.UIBox;
-        handleMaterial.SetFloat("border_size", 0.002f);
-        handleMaterial.SetFloat("border_size_grow", 0.003f);
-        handleMaterial.SetFloat("border_affect_raduis", 0f);
+            titleStyle = Text.MakeStyle(Font.Default, 1f * U.cm, Color.HSV(0, 0, 0));
 
-        Startup();
+            handMenuTextStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, 0));
+            iconTextStyle = Text.MakeStyle(iconFont, 1f * U.cm, Color.HSV(0, 0, 0));
+
+            uiTitleStyle = Text.MakeStyle(Font.Default, .8f * U.cm, Color.HSV(0, 0, .6f));
+            uiBodyStyle = Text.MakeStyle(Font.Default, .6f * U.cm, Color.HSV(0, 0, .8f));
+            UI.PushTextStyle(uiBodyStyle);
+
+            floorTransform = Matrix.TS(0, -1.5f, 0, new Vec3(30, 0.1f, 30));
+            floorMaterial = new Material(Shader.FromFile("floor.hlsl"));
+            floorMaterial.Transparency = Transparency.Blend;
+
+            feet = Sprite.FromFile("footprints.png",SpriteType.Single);
+            feetTransform = Matrix.TRS(V.XYZ(0, -1.45f, 0), Quat.FromAngles(90,180,0) ,.35f * new Vec3(feet.NormalizedDimensions.x, feet.NormalizedDimensions.y,1));
+
+            iconOpen = Sprite.FromFile("open.png", StereoKit.SpriteType.Single);
+            Sprite iconNew = Sprite.FromFile("new.png", StereoKit.SpriteType.Single);
+
+            CreateHandMenu();
+
+            keyboardInput = new KeyboardInput();
+
+
+            Material handleMaterial = Material.UIBox;
+            handleMaterial.SetFloat("border_size", 0.002f);
+            handleMaterial.SetFloat("border_size_grow", 0.003f);
+            handleMaterial.SetFloat("border_affect_raduis", 0f);
+
+            Startup();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void CreateHandMenu()
     {
-        if (handMenu != null)
-        {
-            handMenu.Shutdown();
+        try { 
+            if (handMenu != null)
+            {
+                handMenu.Shutdown();
+            }
+            handMenu = SK.AddStepper(new My.Framework.HandMenuRadial(
+                       new HandRadialLayer("Files",
+                           new HandMenuItem("New|C", null, NewMindMap),
+                           new HandMenuItem("Open|D", null, LoadMindMap, "Nodes"),
+                           new HandMenuItem("Demo|E", null, Demos, "Nodes"),
+                           new HandMenuItem("Quit|F", null, QuitRequest, "Confirm")),
+                       new HandRadialLayer("Confirm",
+                           new HandMenuItem("Cancel|G", null, null, HandMenuAction.Back),
+                           new HandMenuItem("Confirm XXX|H", null, ConfirmAction, HandMenuAction.Back)),
+                       new HandRadialLayer("Nodes",
+                           new HandMenuItem("Add node|B", null, AddNode),
+                           new HandMenuItem("Add portal|A", null, AddPortal),
+                           new HandMenuItem("Save|K", null, SaveMindMap),
+                           new HandMenuItem("Play|I", null, Play, "Play"),
+                           new HandMenuItem("Exit|F", null, ExitMindMapRequest, "Confirm"),
+                           new HandMenuItem("Delete Node|J", null, DeleteNode, "orphan")
+                           ),
+                       new HandRadialLayer("Play",
+                           new HandMenuItem("Slot 1", null, UseObject),
+                           new HandMenuItem("Slot 2", null, UseObject),
+                           new HandMenuItem("Slot 3", null, UseObject),
+                           new HandMenuItem("Slot 4", null, UseObject),
+                           new HandMenuItem("Slot 5", null, UseObject),
+                           new HandMenuItem("Edit|M", null, Edit, HandMenuAction.Back)
+                          ),
+                       new HandRadialLayer("orphan",
+                           new HandMenuItem("Cancel|G", null, CancelDelete, HandMenuAction.Back),
+                           new HandMenuItem("Delete nodes|J", null, DeleteSelectedNode, HandMenuAction.Back)
+                           )));
+
+
+            handMenu.textStyle = handMenuTextStyle;
+            handMenu.iconStyle = iconTextStyle;
         }
-        handMenu = SK.AddStepper(new My.Framework.HandMenuRadial(
-                   new HandRadialLayer("Files",
-                       new HandMenuItem("New|C", null, NewMindMap),
-                       new HandMenuItem("Open|D", null, LoadMindMap, "Nodes"),
-                       new HandMenuItem("Demo|E", null, Demos, "Nodes"),
-                       new HandMenuItem("Quit|F", null, QuitRequest, "Confirm")),
-                   new HandRadialLayer("Confirm",
-                       new HandMenuItem("Cancel|G", null, null, HandMenuAction.Back),
-                       new HandMenuItem("Confirm XXX|H", null, ConfirmAction, HandMenuAction.Back)),
-                   new HandRadialLayer("Nodes",
-                       new HandMenuItem("Add node|B", null, AddNode),
-                       new HandMenuItem("Add portal|A", null, AddPortal),
-                       new HandMenuItem("Save|K", null, SaveMindMap),
-                       new HandMenuItem("Play|I", null, Play, "Play"),
-                       new HandMenuItem("Exit|F", null, ExitMindMapRequest, "Confirm"),
-                       new HandMenuItem("Delete Node|J", null, DeleteNode, "orphan")
-                       ),
-                   new HandRadialLayer("Play",
-                       new HandMenuItem("Slot 1", null, UseObject),
-                       new HandMenuItem("Slot 2", null, UseObject),
-                       new HandMenuItem("Slot 3", null, UseObject),
-                       new HandMenuItem("Slot 4", null, UseObject),
-                       new HandMenuItem("Slot 5", null, UseObject),
-                       new HandMenuItem("Edit|M", null, Edit, HandMenuAction.Back)
-                      ),
-                   new HandRadialLayer("orphan",
-                       new HandMenuItem("Cancel|G", null, CancelDelete, HandMenuAction.Back),
-                       new HandMenuItem("Delete nodes|J", null, DeleteSelectedNode, HandMenuAction.Back)
-                       )));
-
-
-        handMenu.textStyle = handMenuTextStyle;
-        handMenu.iconStyle = iconTextStyle;
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
-    static public int selectedNodeRightId = -1;
+    static public int[] selectedNodes = new int[2];
 
     private Pose errorPose = new Pose();
     private float pinchScaleInitialDistance = 0;
@@ -194,36 +201,34 @@ public class Main
     private bool scalingNode = false;
     private Hand leftHand;
 
+
+    private float[] closestDistance = new float[2];
+
+    static public int editingNodeId = -1;
+    static public string editingNodeDescription = "";
+
     //private Vec3 scaleHorizontal = new Vec3(1, 0, 1);
+
+    static public void ResetEditingMode()
+    {
+        editingNodeId = -1;
+        editingNodeDescription = "";
+    }
     public void Update()
     {
         
         try
         {
             deltaTime = Time.ElapsedUnscaledf;
-            leftHand = Input.Hand(Handed.Left);
 
-            Hierarchy.Push(Renderer.CameraRoot);
+            HandleLocomotion();
 
-            if (leftHand.IsJustGripped)
+            if (editingNodeId >= 0)
             {
-                relativeLocomotionOrigin = Hierarchy.ToLocal(leftHand.palm.position);
+                if (Nodes.ContainsKey(editingNodeId) == false)
+                    ResetEditingMode();
             }
 
-            if (leftHand.IsGripped && leftHand.palm.position.Length != 0)
-            {
-                Mesh.GenerateSphere(.03f).Draw(Material.Default, Matrix.T(relativeLocomotionOrigin));
-
-                locomotionDirection = Hierarchy.ToLocal(leftHand.palm.position) - relativeLocomotionOrigin;
-                locomotionDirection = Hierarchy.ToWorldDirection(locomotionDirection);
-
-                Renderer.CameraRoot = Matrix.T(
-                    Renderer.CameraRoot.Pose.position + locomotionDirection * deltaTime * locomotionDirection.Length * 50
-                    );
-
-            }
-
-            Hierarchy.Pop();
             try
             {
                 musicInst.Position = Input.Head.position + Vec3.Up;
@@ -266,40 +271,44 @@ public class Main
                 {
                     int nodeCount = Nodes.Count;
 
-                    float closestRightDistance = 99999999999;
+                    closestDistance[0] = closestDistance[1] = 99999999999;
 
                     float distance = 0;
 
                     if (handMenu.active == false && scalingNode == false)
                     {
-                        selectedNodeRightId = -1;
+                        selectedNodes[0] = selectedNodes[1] = -1;
+                        
                         foreach (int key in keys) // First find closest
                         {
                             Nodes[key].inFocus = false;
                             if (Nodes[key].locationId == locationId)
                             {
-                                distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Nodes[key].pose.position);
-                                if (distance < closestRightDistance && distance < Nodes[key].radius + .1f)
+                                for (int i = 0; i < 2; i++)
                                 {
-                                    selectedNodeRightId = key;
-                                    closestRightDistance = distance;
-                                }
-                                else
-                                {
-
-                                    if (Nodes[key].propertiesDisplayed)
+                                    distance = Vec3.Distance(Input.Hand(i).pinchPt, Nodes[key].pose.position);
+                                    if (distance < closestDistance[i] && distance < Nodes[key].radius + .1f)
                                     {
-                                        distance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt,
-                                            Nodes[key].propertiesPose.position +
-                                            Nodes[key].propertiesPose.Up * -.12f);
+                                        selectedNodes[i] = key;
+                                        closestDistance[i] = distance;
+                                    }
+                                    else
+                                    {
 
-
-                                        if (distance < closestRightDistance && distance < Nodes[key].MaxPropertyWidth.Length)
+                                        if (Nodes[key].propertiesDisplayed)
                                         {
-                                            selectedNodeRightId = key;
-                                            closestRightDistance = distance;
-                                        }
+                                            distance = Vec3.Distance(Input.Hand(i).pinchPt,
+                                                Nodes[key].propertiesPose.position +
+                                                Nodes[key].propertiesPose.Up * -.12f);
 
+
+                                            if (distance < closestDistance[i] && distance < Nodes[key].MaxPropertyWidth.Length)
+                                            {
+                                                selectedNodes[i] = key;
+                                                closestDistance[i] = distance;
+                                            }
+
+                                        }
                                     }
                                 }
 
@@ -307,30 +316,33 @@ public class Main
                         }
                     }
                     scalingNode = false;
-                    if (selectedNodeRightId >= 0)
+                    for (int i = 0; i < 2; i++)
                     {
-                        Nodes[selectedNodeRightId].inFocus = true;
-                        if (Nodes[selectedNodeRightId].grabbed || true)
+                        if (selectedNodes[i] >= 0)
+                            Nodes[selectedNodes[i]].inFocus = true;
+                    }
+                    if (selectedNodes[0] >= 0 && selectedNodes[0] == selectedNodes[1])
+                    {
+                        
+                        if (Input.Hand(Handed.Right).pinchPt.Length != 0f && Input.Hand(Handed.Left).pinchPt.Length != 0)
                         {
-                            if (Input.Hand(Handed.Right).pinchPt.Length != 0f && Input.Hand(Handed.Left).pinchPt.Length != 0)
+                            if (Input.Hand(Handed.Right).IsJustPinched == true ||
+                                Input.Hand(Handed.Left).IsJustPinched == true)
                             {
-                                if (Input.Hand(Handed.Right).IsJustPinched == true ||
-                                    Input.Hand(Handed.Left).IsJustPinched == true)
-                                {
-                                    pinchScaleInitialDistance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6;
-                                    pinchScaleInitialScale = Nodes[selectedNodeRightId].activeState.nodeScale;
-                                }
+                                pinchScaleInitialDistance = Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6;
+                                pinchScaleInitialScale = Nodes[selectedNodes[0]].activeState.nodeScale;
+                            }
 
-                                if (Input.Hand(Handed.Right).IsPinched == true &&
-                                    Input.Hand(Handed.Left).IsPinched == true)
-                                {
-                                    scalingNode = true;
-                                    Nodes[selectedNodeRightId].activeState.nodeScale = pinchScaleInitialScale +
-                                        (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6f)
-                                        - pinchScaleInitialDistance;
-                                }
+                            if (Input.Hand(Handed.Right).IsPinched == true &&
+                                Input.Hand(Handed.Left).IsPinched == true)
+                            {
+                                scalingNode = true;
+                                Nodes[selectedNodes[0]].activeState.nodeScale = pinchScaleInitialScale +
+                                    (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, Input.Hand(Handed.Left).pinchPt) * 6f)
+                                    - pinchScaleInitialDistance;
                             }
                         }
+                        
                     }
                 }
 
@@ -360,22 +372,98 @@ public class Main
     static bool deletingNode = false;
 
 
+    private Pose locomotionPose = new Pose();
+    private bool locomotionActive = false;
+    private void HandleLocomotion()
+    {
+        leftHand = Input.Hand(Handed.Left);
+
+        float activation = Math.Max(0.2f, leftHand.gripActivation * .3f);
+        bool aligned = Vec3.Dot(leftHand.palm.orientation * Vec3.Forward, (leftHand.palm.position - Input.Head.position).Normalized) < -.99f;
+
+
+        locomotionPose.position = leftHand.palm.position;
+        if (locomotionActive || (leftHand.IsJustGripped && aligned))
+            locomotionPose.position += leftHand.palm.orientation * Vec3.Forward * .05f;
+
+        locomotionPose.orientation = Quat.LookAt(locomotionPose.position, Input.Head.position);
+        locomotionPose.position += locomotionPose.Forward * U.cm * 1.5f;
+
+
+        
+
+        if (My.Framework.HandMenuRadial.HandFacingHead(leftHand) || locomotionActive)
+        {
+            string text;
+
+
+            if (locomotionActive == false)
+            {
+                text = aligned ? "Grip" : "Align";
+                Hierarchy.Push(locomotionPose.ToMatrix(activation));
+                Lines.Add(handMenu.circle);
+                Hierarchy.Push(Matrix.S(1.6f));
+                Text.Add(text, Matrix.Identity, TextAlign.Center);
+                Hierarchy.Pop();
+                Hierarchy.Pop();
+            
+                Hierarchy.Push(Matrix.TRS(leftHand.palm.position + (leftHand.palm.orientation * Vec3.Forward * .03f), leftHand.palm.orientation, .16f));
+                Lines.Add(handMenu.circle);
+                Hierarchy.Pop();
+            }
+        }
+
+        Hierarchy.Push(Renderer.CameraRoot);
+        if (leftHand.IsGripped == false)
+            locomotionActive = false;
+
+        if (leftHand.IsJustGripped && aligned)
+        {
+            relativeLocomotionOrigin = Hierarchy.ToLocal(locomotionPose.position);
+            locomotionActive = true;
+        }
+
+        if (locomotionActive && leftHand.palm.position.Length != 0)
+        {
+            
+            Hierarchy.Push(Matrix.TRS(relativeLocomotionOrigin, locomotionPose.orientation, activation));
+            Lines.Add(handMenu.circle);
+            Hierarchy.Push(Matrix.S(1.6f));
+            Text.Add("Drag", Matrix.Identity, TextAlign.Center);
+            Hierarchy.Pop();
+            Hierarchy.Pop();
+
+
+            locomotionDirection = Hierarchy.ToLocal(locomotionPose.position) - relativeLocomotionOrigin;
+            locomotionDirection = Hierarchy.ToWorldDirection(locomotionDirection);
+
+            Renderer.CameraRoot = Matrix.T(
+                Renderer.CameraRoot.Pose.position + locomotionDirection * deltaTime * locomotionDirection.Length * 50
+                );
+
+        }
+
+        Hierarchy.Pop();
+    }
+
 
     private void HandText()
     {
-        
-        Hand hand = Input.Hand(Handed.Right);
-        Vec3 pos = hand.palm.position + hand.palm.Forward * -.05f;
+        try { 
+            Hand hand = Input.Hand(Handed.Right);
+            Vec3 pos = hand.palm.position + hand.palm.Forward * -.05f;
 
-        string text = "";
-        text = "Health: " + health + "%\n"
-            + "Score: " + score;
+            string text = "";
+            text = "Health: " + health + "%\n"
+                + "Score: " + score;
 
-        if (Vec3.Dot(hand.palm.Forward, (hand.palm.position - Input.Head.position).Normalized) > .6f)
-        {
-            Text.Add(text, Matrix.TRS(
-                pos,Quat.LookAt(pos, Input.Head.position),Vec3.One * 1f), titleStyle, TextAlign.Center, TextAlign.Center);
+            if (Vec3.Dot(hand.palm.Forward, (hand.palm.position - Input.Head.position).Normalized) > .6f)
+            {
+                Text.Add(text, Matrix.TRS(
+                    pos,Quat.LookAt(pos, Input.Head.position),Vec3.One * 1f), titleStyle, TextAlign.Center, TextAlign.Center);
+            }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
@@ -387,69 +475,94 @@ public class Main
 
     private void AddNode()
     {
-        Hand hand = Input.Hand(Handed.Right);
-        Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
-        Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)));
+        try { 
+            Hand hand = Input.Hand(Handed.Right);
+            Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
+            Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)));
 
-        Nodes.Add(newNode.id, newNode);
+            Nodes.Add(newNode.id, newNode);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void AddPortal()
     {
-        Hand hand = Input.Hand(Handed.Right);
-        Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
-        Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
+        try { 
+            Hand hand = Input.Hand(Handed.Right);
+            Vec3 position = hand[FingerId.Ring, JointId.Tip].position;
+            Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
 
-        Nodes.Add(newNode.id, newNode);
+            Nodes.Add(newNode.id, newNode);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
     private void Files()
     {
-        menuState = MenuState.Files;
+        try { 
+            menuState = MenuState.Files;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void Demos()
     {
-        handMenu.Close();
-        LoadMindMap("Assets\\demo.dat");
+        try { 
+            handMenu.Close();
+            LoadMindMap("Assets\\demo.dat");
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
     }
 
     private void Play()
     {
-        Main.menuState = MenuState.Play;
-        handMenu.Close();
-        ResetNodeStatus(true);
+        try { 
+            Main.menuState = MenuState.Play;
+            handMenu.Close();
+            ResetNodeStatus(true);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void Edit()
     {
-        Main.menuState = MenuState.EditNodes;
-        handMenu.Close();
-        ResetNodeStatus(false);
+        try
+        {
+            Main.menuState = MenuState.EditNodes;
+            handMenu.Close();
+            ResetNodeStatus(false);
+        }
+            catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void ResetNodeStatus(bool saveChangesInEditMode)
     {
-        inventoryNodeIds = new List<int>();
-        inventoryNodeIdHeld = -1;
-        score = 0;
-        health = 100;
-        foreach (KeyValuePair<int, Node> kvp in Nodes)
-            kvp.Value.InitForNewPlay(saveChangesInEditMode);
-        RedrawInventory();
+        try { 
+            inventoryNodeIds = new List<int>();
+            inventoryNodeIdHeld = -1;
+            score = 0;
+            health = 100;
+            foreach (KeyValuePair<int, Node> kvp in Nodes)
+                kvp.Value.InitForNewPlay(saveChangesInEditMode);
+            RedrawInventory();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
     private void Back()
     {
-        switch (menuState)
-        {
-            case MenuState.Demos:
-            case MenuState.EditNodes:
-            case MenuState.Play:
-                menuState = MenuState.Files;
-                break;
+        try { 
+            switch (menuState)
+            {
+                case MenuState.Demos:
+                case MenuState.EditNodes:
+                case MenuState.Play:
+                    menuState = MenuState.Files;
+                    break;
+            }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void QuitRequest()
@@ -467,11 +580,14 @@ public class Main
 
     private void LoadMindMap()
     {
-        handMenu.Close();
-        if (Platform.FilePickerVisible == false)
-        {
-            Platform.FilePicker(PickerMode.Open, LoadMindMap, cancelLoadMindMap, ".dat");
+        try { 
+            handMenu.Close();
+            if (Platform.FilePickerVisible == false)
+            {
+                Platform.FilePicker(PickerMode.Open, LoadMindMap, cancelLoadMindMap, ".dat");
+            }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void LoadMindMap(string filename)
@@ -529,188 +645,230 @@ public class Main
 
     private void cancelLoadMindMap()
     {
-        handMenu.Back();
+        try { 
+            handMenu.Back();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
     private void SaveMindMap()
     {
-        SaveMindMap(mindMapFilename);
-        Default.SoundClick.Play(Input.Head.position);
+        try { 
+            SaveMindMap(mindMapFilename);
+            Default.SoundClick.Play(Input.Head.position);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
     private void SaveMindMap(string filename)
     {
-        List<string> nodeDetails = new List<string>();
-        foreach (KeyValuePair<int, Node> kvp in Nodes)
-            nodeDetails.Add(kvp.Value.Serialise());
+        try { 
+            List<string> nodeDetails = new List<string>();
+            foreach (KeyValuePair<int, Node> kvp in Nodes)
+                nodeDetails.Add(kvp.Value.Serialise());
 
-        string output = string.Join(nodeSeparator, nodeDetails.ToArray());
+            string output = string.Join(nodeSeparator, nodeDetails.ToArray());
 
-        Platform.WriteFile(filename, System.Text.Encoding.UTF8.GetBytes(output));
+            Platform.WriteFile(filename, System.Text.Encoding.UTF8.GetBytes(output));
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
 
     private void NewMindMap()
     {
-        if (Platform.FilePickerVisible == false) {
-            Platform.FilePicker(PickerMode.Save, NewFilenameSelected, null, "");
-            handMenu.Back();
-            handMenu.Close();
+        try { 
+            if (Platform.FilePickerVisible == false) {
+                Platform.FilePicker(PickerMode.Save, NewFilenameSelected, null, "");
+                handMenu.Back();
+                handMenu.Close();
+            }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
     private void NewFilenameSelected(string filename)
     {
-        ResetNodes();
-        if (filename.ToLower().EndsWith(".dat") == false)
-            filename += ".dat";
+        try { 
+            ResetNodes();
+            if (filename.ToLower().EndsWith(".dat") == false)
+                filename += ".dat";
 
-        mindMapFilename = filename;
+            mindMapFilename = filename;
         
-        handMenu.SelectLayer("Nodes");
-        NewLocation();
-        menuState = MenuState.EditNodes;
+            handMenu.SelectLayer("Nodes");
+            NewLocation();
+            menuState = MenuState.EditNodes;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
-        
     }
 
     private void ResetNodes()
     {
-        
-        LocationNames = new Dictionary<int, string>();
-        Nodes = new Dictionary<int, Node>();
-        Node.maxNodeId = 0;
-        selectedNodeRightId = -1;
+        try {    
+            LocationNames = new Dictionary<int, string>();
+            Nodes = new Dictionary<int, Node>();
+            Node.maxNodeId = 0;
+            selectedNodes[0] = selectedNodes[1] = -1;
 
-        inventoryNodeIds = new List<int>();
-        inventoryNodeIdHeld = -1;
-        score = 0;
-        health = 100;
+            inventoryNodeIds = new List<int>();
+            inventoryNodeIdHeld = -1;
+            score = 0;
+            health = 100;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     static public string actionRequested;
     private void ConfirmAction()
     {
-        switch (actionRequested)
-        {
-            case "quit":
-                StopMusic();
-                SK.Quit();
-                break;
-            case "exit":
-                StopMusic();
-                handMenu.Back();
-                handMenu.Close();
-                Startup();
-                break;
+        try { 
+            switch (actionRequested)
+            {
+                case "quit":
+                    StopMusic();
+                    SK.Quit();
+                    break;
+                case "exit":
+                    StopMusic();
+                    handMenu.Back();
+                    handMenu.Close();
+                    Startup();
+                    break;
+            }
+            actionRequested = "";
         }
-        actionRequested = "";
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void Startup()
     {
-        handMenu.Reset();
-        LoadMindMap("Assets\\startup.dat");
-
+        try { 
+            handMenu.Reset();
+            LoadMindMap("Assets\\startup.dat");
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
     static public string nameMe = "Name me!";
     static public void NewLocation()
     {
-        StopMusic();
-        Vec3 position = Input.Head.position + Input.Head.Forward * .4f;
+        try { 
+            StopMusic();
+            Vec3 position = Input.Head.position + Input.Head.Forward * .4f;
 
-        Node newNode = new Node(true, nameMe, new Pose(position, Quat.LookAt(position, Input.Head.position)), false, "cube.obj");
-        Main.Nodes.Add(newNode.id, newNode);
-        Main.locationId = newNode.locationId = newNode.id;
+            Node newNode = new Node(true, nameMe, new Pose(position, Quat.LookAt(position, Input.Head.position)), false, "cube.obj");
+            Main.Nodes.Add(newNode.id, newNode);
+            Main.locationId = newNode.locationId = newNode.id;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
     static public void GoToLocation(int destinationId)
     {
-        if (destinationId == 0)
-        {
-            int savedLocation = locationId;
-            Main.NewLocation();
-            Vec3 position = Input.Head.position + Input.Head.Forward * .4f + Input.Head.Right * .4f;
-            Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
-            newNode.destinationId = savedLocation;
+        try { 
+            if (destinationId == 0)
+            {
+                int savedLocation = locationId;
+                Main.NewLocation();
+                Vec3 position = Input.Head.position + Input.Head.Forward * .4f + Input.Head.Right * .4f;
+                Node newNode = new Node(false, "", new Pose(position, Quat.LookAt(position, Input.Head.position)), true, "portal.obj");
+                newNode.destinationId = savedLocation;
 
-            Nodes.Add(newNode.id, newNode);
+                Nodes.Add(newNode.id, newNode);
+            }
+            else
+            {
+                Main.locationId = destinationId;
+            }
+            PlayMusicForLocation();
         }
-        else
-        {
-            Main.locationId = destinationId;
-        }
-        PlayMusicForLocation();
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     static public string errorMessage = "";
     private void DeleteNode()
     {
-        bool confirmDelete = false;
+        try { 
+            bool confirmDelete = false;
 
-        if (selectedNodeRightId <= 0)
-        {
-            errorMessage = "Place your hand closer to the\nnode before selecting delete";
-        }
-        else
-        {
-            if (selectedNodeRightId >= 0)
+            if (selectedNodes[1] <= 0)
             {
-                if (Nodes[selectedNodeRightId].isLocation)
+                errorMessage = "Place your right hand closer to the\nnode before selecting delete";
+            }
+            else
+            {
+                if (selectedNodes[1] >= 0)
                 {
-                    errorMessage = "This is the root node for this\nlocation and cannot be deleted";
-                }
-                else
-                {
-                    confirmDelete = true;
+                    if (Nodes[selectedNodes[1]].isLocation)
+                    {
+                        errorMessage = "This is the root node for this\nlocation and cannot be deleted";
+                    }
+                    else
+                    {
+                        confirmDelete = true;
+                    }
                 }
             }
+            if (confirmDelete)
+                deletingNode = true;
+            else
+                handMenu.Back();
         }
-        if (confirmDelete)
-            deletingNode = true;
-        else
-            handMenu.Back();
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private int OrphanCheck(int locationId)
     {
+        
         int portalCount = 0;
 
-        foreach (KeyValuePair<int, Node> kvp in Nodes)
-        {
-            if (kvp.Value.isPortal && kvp.Value.destinationId == locationId)
-                portalCount++;
+        try { 
+            foreach (KeyValuePair<int, Node> kvp in Nodes)
+            {
+                if (kvp.Value.isPortal && kvp.Value.destinationId == locationId)
+                    portalCount++;
+            }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
         return portalCount;
     }
 
     private void DeleteSelectedNode()
     {
-        DeleteOnlyNode(selectedNodeRightId);
-        selectedNodeRightId = -1;
-        handMenu.Close();
+        try { 
+            DeleteOnlyNode(selectedNodes[1]);
+            selectedNodes[1] = -1;
+            handMenu.Close();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
     private void DeleteOnlyNode(int nodeId)
     {
-        Nodes.Remove(nodeId);
-        deletingNode = false;
+        try { 
+            Nodes.Remove(nodeId);
+            deletingNode = false;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void DeleteOrphans()
     {
-        List<int> keys = new List<int>();
-        foreach (KeyValuePair<int, Node> kvp in Nodes)
-        {
-            if (kvp.Value.locationId == Nodes[selectedNodeRightId].destinationId)
-                keys.Add(kvp.Key);
-        }
+        try { 
+            List<int> keys = new List<int>();
+            foreach (KeyValuePair<int, Node> kvp in Nodes)
+            {
+                if (kvp.Value.locationId == Nodes[selectedNodes[1]].destinationId)
+                    keys.Add(kvp.Key);
+            }
 
-        foreach (int key in keys)
-            DeleteOnlyNode(key);
+            foreach (int key in keys)
+                DeleteOnlyNode(key);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private void CancelDelete()
@@ -720,12 +878,14 @@ public class Main
 
     static public void MenuClosed()
     {
-        if (Main.deletingNode)
-        {
-            Main.handMenu.Back();
-            Main.deletingNode = false;
+        try { 
+            if (Main.deletingNode)
+            {
+                Main.handMenu.Back();
+                Main.deletingNode = false;
+            }
         }
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     static public void PlayMusicForLocation()
@@ -764,46 +924,54 @@ public class Main
     static public int inventoryNodeIdHeld = 0;
     private void UseObject()
     {
-        inventoryInxInUse = handMenu.lastIdSelected;
-        RedrawInventory();
+        try { 
+            inventoryInxInUse = handMenu.lastIdSelected;
+            RedrawInventory();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     static public bool AddObjectToSlot(int nodeId)
     {
-        if (Nodes[nodeId].isLocation)
-        {
-            errorMessage = "You can't carry a location";
-            return false;
+        try { 
+            if (Nodes[nodeId].isLocation)
+            {
+                errorMessage = "You can't carry a location";
+                return false;
+            }
+            inventoryNodeIds.Add(nodeId);
+            if (inventoryNodeIds.Count > 5)
+                inventoryNodeIds.RemoveAt(0);
+            RedrawInventory();
         }
-        inventoryNodeIds.Add(nodeId);
-        if (inventoryNodeIds.Count > 5)
-            inventoryNodeIds.RemoveAt(0);
-        RedrawInventory();
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
         return true;
         
     }
 
     static public void RedrawInventory()
     {
-        inventoryNodeIdHeld = 0;
-        int count = 0;
-        foreach (int id in inventoryNodeIds)
-        {
-            handMenu.layers[HandMenuInventoryLayer].items[count].name = Nodes[id].activeState.name;
-            if (count == inventoryInxInUse)
+        try { 
+            inventoryNodeIdHeld = 0;
+            int count = 0;
+            foreach (int id in inventoryNodeIds)
             {
-                handMenu.layers[HandMenuInventoryLayer].items[count].name += "|B";
-                inventoryNodeIdHeld = id;
+                handMenu.layers[HandMenuInventoryLayer].items[count].name = Nodes[id].activeState.name;
+                if (count == inventoryInxInUse)
+                {
+                    handMenu.layers[HandMenuInventoryLayer].items[count].name += "|B";
+                    inventoryNodeIdHeld = id;
+                }
+                count++;
             }
-            count++;
+            for (int i = count; i < 5; i++)
+            {
+                handMenu.layers[HandMenuInventoryLayer].items[i].name = "Slot " + (i + 1);
+                if (i == inventoryInxInUse)
+                    handMenu.layers[HandMenuInventoryLayer].items[i].name += "|B";
+            }
         }
-        for (int i = count; i < 5; i++)
-        {
-            handMenu.layers[HandMenuInventoryLayer].items[i].name = "Slot " + (i + 1);
-            if (i == inventoryInxInUse)
-                handMenu.layers[HandMenuInventoryLayer].items[i].name += "|B";
-        }
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 

@@ -209,63 +209,71 @@ public class Node
     }
     public Node(bool inIsLocation, string inName, Pose inPose, bool inIsPortal = false, string inModelFilename="sphere.obj")
     {
-        Node.maxNodeId++;
-        id = Node.maxNodeId;
+        try { 
+            Node.maxNodeId++;
+            id = Node.maxNodeId;
 
-        isLocation = inIsLocation;
-        isPortal = inIsPortal;
-        pose = inPose;
+            isLocation = inIsLocation;
+            isPortal = inIsPortal;
+            pose = inPose;
 
-        inName = GetDefaultName();
-        if (isLocation)
-            Main.LocationNames[id] = inName;
+            inName = GetDefaultName();
+            if (isLocation)
+                Main.LocationNames[id] = inName;
 
-        defaultName = inName;
+            defaultName = inName;
 
-        // States
-        states.Add(maxStateKey, new Node.State(maxStateKey, inName, inModelFilename));
-        ChangeActiveState(maxStateKey, false);
-        maxStateKey++;
+            // States
+            states.Add(maxStateKey, new Node.State(maxStateKey, inName, inModelFilename));
+            ChangeActiveState(maxStateKey, false);
+            maxStateKey++;
 
-        visibleAtStart = true;
+            visibleAtStart = true;
 
-        relatives = new Dictionary<int, Relative>();
-        locationId = Main.locationId;
+            relatives = new Dictionary<int, Relative>();
+            locationId = Main.locationId;
             
-        health = 100;
-        parentDragPoint = Vec3.Zero;
-        editState = EditState.ready;
+            health = 100;
+            parentDragPoint = Vec3.Zero;
+            editState = EditState.ready;
             
-        OnLoadModel(activeState.modelFilename);
-        destinationId = 0;
+            OnLoadModel(activeState.modelFilename);
+            destinationId = 0;
 
-        init();
+            init();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     ~Node()
     {
-        Log.Info("Node" + states[activeStateKey].name + "Exiting");
+        //Log.Info("Node" + states[activeStateKey].name + "Exiting");
     }
 
     private void init()
     {
-        actions = new Actions(this);
+        try { 
+            actions = new Actions(this);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void ChangeActiveState(int newKey, bool updateBeforeChange)
     {
-        if (updateBeforeChange)
-            states[activeStateKey] = activeState;
+        try { 
+            if (updateBeforeChange)
+                states[activeStateKey] = activeState;
 
-        activeStateKey = newKey;
-        activeState = states[activeStateKey];
-        if (activeState.modelFilename != "")
-            OnLoadStandardModel(activeState.modelFilename);
-        if (activeState.spriteFilename != "")
-            OnLoadStandardImage(activeState.spriteFilename);
-        if (isLocation)
-            Main.PlayMusicForLocation();
-           
+            activeStateKey = newKey;
+            activeState = states[activeStateKey];
+            if (activeState.modelFilename != "")
+                OnLoadStandardModel(activeState.modelFilename);
+            if (activeState.spriteFilename != "")
+                OnLoadStandardImage(activeState.spriteFilename);
+            if (isLocation)
+                Main.PlayMusicForLocation();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
@@ -273,6 +281,7 @@ public class Node
     private Matrix titlePosition;
     private bool draw = false;
     private Pose moreInfoPose = new Pose();
+    private Pose moreInfoWindowPose = new Pose();
     private Vec2 notesSize = new Vec2(.2f,.055f);
 
     private int sinx;
@@ -282,178 +291,192 @@ public class Node
     private Matrix modeTransform = new Matrix();
     public void Draw()
     {
-        UI.PushId("" + id);
+        try { 
+            UI.PushId("" + id);
 
-        draw = Vec3.Dot((pose.position - Input.Head.position).Normalized, Input.Head.Forward) > 0 || forceDraw;
-        forceDraw = false;
+            draw = Vec3.Dot((pose.position - Input.Head.position).Normalized, Input.Head.Forward) > 0 || forceDraw;
+            forceDraw = false;
         
 
-        titleSize = Text.Size(activeState.name, Main.titleStyle);
-        actionCooldown = Math.Max(0, actionCooldown - Main.deltaTime);
+            titleSize = Text.Size(activeState.name, Main.titleStyle);
+            actionCooldown = Math.Max(0, actionCooldown - Main.deltaTime);
 
 
-        Controller c = Input.Controller(Handed.Right);
-        if (c.IsX1Pressed)
-        {
-            Renderer.Screenshot("G:\\IdeaEngine\\scrshot" + Time.Elapsedf + ".jpg", Input.Head.position, Input.Head.Forward, 1920, 1080);
-
-            sinx++;
-        }
-
-        if (draw)
-        {
-
-            if (activeState.spriteFilename == "")
+            Controller c = Input.Controller(Handed.Right);
+            if (c.IsX1Pressed)
             {
-                calculatedScale = (.12f * activeState.nodeScale) / Math.Max(Math.Max(model.Bounds.dimensions.x, model.Bounds.dimensions.y), model.Bounds.dimensions.z);
-                dimensions = model.Bounds.dimensions * calculatedScale;
-                scaledBounds = model.Bounds * calculatedScale;
-                dimensions.x = MathF.Max(.05f, dimensions.x);
-                dimensions.y = MathF.Max(.05f, dimensions.y);
-                dimensions.z = MathF.Max(.05f, dimensions.z);
+                Renderer.Screenshot("G:\\IdeaEngine\\scrshot" + Time.Elapsedf + ".jpg", Input.Head.position, Input.Head.Forward, 1920, 1080);
 
-                modeTransform = Matrix.TRS(pose.position, pose.orientation, calculatedScale * .9f);
-                modeTransform.Translation = modeTransform.Transform(model.Bounds.center * -1);
-                model.Draw(modeTransform, activeState.color);
-            }
-            else
-            {
-                calculatedScale = .12f * activeState.nodeScale;
-                dimensions = Vec3.One * calculatedScale;
-                dimensions.z = .05f;
-                scaledBounds = new Bounds(Vec3.Zero,dimensions);
-                sprite.Draw(Matrix.TRS(pose.position + pose.Up * (calculatedScale/2) + pose.Right * (calculatedScale / 2) * -1
-                    , pose.orientation, calculatedScale * 
-                    V.XYZ(sprite.NormalizedDimensions.x, sprite.NormalizedDimensions.y,1)), activeState.color);
+                sinx++;
             }
 
-            radius = MathF.Max(dimensions.x, dimensions.y);
-            radius = MathF.Max(radius, dimensions.z);
-            radius /= 2;
+            if (draw)
+            {
 
-            titlePosition = Matrix.TRS(pose.position +
-                pose.Up * ((dimensions.y /2) + titleSize.y / 2 + .03f)
-                , pose.orientation, 1f);
-            Text.Add(activeState.name, titlePosition, Main.titleStyle, TextAlign.Center, TextAlign.Center);
+                if (activeState.spriteFilename == "")
+                {
+                    calculatedScale = (.12f * activeState.nodeScale) / Math.Max(Math.Max(model.Bounds.dimensions.x, model.Bounds.dimensions.y), model.Bounds.dimensions.z);
+                    dimensions = model.Bounds.dimensions * calculatedScale;
+                    scaledBounds = model.Bounds * calculatedScale;
+                    dimensions.x = MathF.Max(.05f, dimensions.x);
+                    dimensions.y = MathF.Max(.05f, dimensions.y);
+                    dimensions.z = MathF.Max(.05f, dimensions.z);
 
-            moreInfoPose.position = pose.position + 
-                pose.Forward * ((dimensions.z / 2) + .02f) +
-                pose.Up * ((dimensions.y / -2) + -.00f);
-            moreInfoPose.orientation = pose.orientation;
+                    modeTransform = Matrix.TRS(pose.position, pose.orientation, calculatedScale * .9f);
+                    modeTransform.Translation = modeTransform.Transform(model.Bounds.center * -1);
+                    model.Draw(modeTransform, activeState.color);
+                }
+                else
+                {
+                    calculatedScale = .12f * activeState.nodeScale;
+                    dimensions = Vec3.One * calculatedScale;
+                    dimensions.z = .05f;
+                    scaledBounds = new Bounds(Vec3.Zero,dimensions);
+                    sprite.Draw(Matrix.TRS(pose.position + pose.Up * (calculatedScale/2) + pose.Right * (calculatedScale / 2) * -1
+                        , pose.orientation, calculatedScale * 
+                        V.XYZ(sprite.NormalizedDimensions.x, sprite.NormalizedDimensions.y,1)), activeState.color);
+                }
 
-            if (moreInfoState == MoreInfoState.expanded && Node.activeNodeId != id)
-                moreInfoState = MoreInfoState.collapsed;
+                radius = MathF.Max(dimensions.x, dimensions.y);
+                radius = MathF.Max(radius, dimensions.z);
+                radius /= 2;
+
+                titlePosition = Matrix.TRS(pose.position +
+                    pose.Up * ((dimensions.y /2) + titleSize.y / 2 + .03f)
+                    , pose.orientation, 1f);
+                Text.Add(activeState.name, titlePosition, Main.titleStyle, TextAlign.Center, TextAlign.Center);
+
+                moreInfoPose.position = pose.position +
+                    pose.Forward * ((dimensions.z / 2) + .02f) +
+                    pose.Up * ((dimensions.y / -2) + -.00f);
+                moreInfoPose.orientation = pose.orientation;
+
+                if (moreInfoState == MoreInfoState.expanded && Node.activeNodeId != id)
+                    moreInfoState = MoreInfoState.collapsed;
                 
-            switch (moreInfoState)
-            {
-                case MoreInfoState.collapsed:
+                switch (moreInfoState)
+                {
+                    case MoreInfoState.collapsed:
+                        if (Main.editingNodeId == id && Main.editingNodeDescription == "MoreInfo")
+                            Main.ResetEditingMode();
 
-                    if (CheckIfMoreWindowRequired()) { 
-                        UI.WindowBegin("MoreInfo", ref moreInfoPose, UIWin.Empty);
-                        if (states.Count > 1 && Main.menuState == Main.MenuState.EditNodes)
-                    {
-                        Text.Add("State: " + activeStateKey,
-                            Matrix.Identity, Main.titleStyle, TextAlign.BottomCenter, TextAlign.TopCenter);
-                    }
-                        if (isPortal)
-                    {
-                        string destinationName = "New location";
-                        if (destinationId > 0)
-                        {
-                            if (Main.LocationNames.ContainsKey(destinationId))
-                                destinationName = Main.LocationNames[destinationId];
-                        }
-                        if (UI.Button("Go to\n" + destinationName))
-                        {
-                            Main.GoToLocation(destinationId);
-                            destinationId = Main.locationId; // Update in case a new node was created
-                        }
-                    }
-                        else
-                    {
-                            if (UI.Button("More"))
+                        if (CheckIfMoreWindowRequired()) { 
+                            UI.WindowBegin("MoreInfo", ref moreInfoPose, UIWin.Empty);
+                            if (states.Count > 1 && Main.menuState == Main.MenuState.EditNodes)
                             {
-                                moreInfoState = MoreInfoState.expanded;
-                                Node.activeNodeId = id;
+                                Text.Add("State: " + activeStateKey,
+                                    Matrix.Identity, Main.titleStyle, TextAlign.BottomCenter, TextAlign.TopCenter);
                             }
-                    }
+                            if (isPortal)
+                            {
+                                string destinationName = "New location";
+                                if (destinationId > 0)
+                                {
+                                    if (Main.LocationNames.ContainsKey(destinationId))
+                                        destinationName = Main.LocationNames[destinationId];
+                                }
+                                if (UI.Button("Go to\n" + destinationName))
+                                {
+                                    Main.GoToLocation(destinationId);
+                                    destinationId = Main.locationId; // Update in case a new node was created
+                                }
+                            }
+                            else
+                            {
+                                    if (UI.Button("More"))
+                                    {
+                                        moreInfoState = MoreInfoState.expanded;
+                                        moreInfoWindowPose.position = moreInfoPose.position + (moreInfoPose.orientation * Vec3.Forward) * .02f;
+                                        moreInfoWindowPose.orientation = moreInfoPose.orientation;
+                                        Main.editingNodeId = id;
+                                        Main.editingNodeDescription = "MoreInfo";
+                                        Node.activeNodeId = id;
+                                    }
+                            }
+                            UI.WindowEnd();
+                        }
+
+                        break;
+
+                    case MoreInfoState.expanded:
+                        UI.WindowBegin("MoreInfo", ref moreInfoWindowPose, UIWin.Body);
+                        notesSize = Text.Size(activeState.notes, Main.generalTextStyle);
+                        if (Main.menuState == Main.MenuState.EditNodes)
+                            notesSize.x = MathF.Max(.25f, notesSize.x);
+                        else
+                            notesSize.x = MathF.Max(.1f, notesSize.x);
+                        notesSize.y = MathF.Max(.01f, notesSize.y + .003f);
+                        if (Main.menuState == Main.MenuState.EditNodes)
+                            UI.Label("Type notes here. The box will expand to fit the width and height");
+                        UI.LayoutReserve(notesSize);
+
+                        Mesh.Cube.Draw(Material.Unlit,
+                            Matrix.TRS(UI.LayoutLast.center + Vec3.Forward * .001f, Quat.Identity, UI.LayoutLast.dimensions + V.XYZ(.01f,.01f,0)),
+                            Color.White);
+                        
+                        Text.Add(activeState.notes, Matrix.T(UI.LayoutLast.center + Vec3.Forward * .002f), notesSize, 
+                            TextFit.Clip, Main.generalTextStyle,
+                            TextAlign.Center, TextAlign.TopLeft);
+
+                        actions.Draw();
+
+
+                        UI.HSeparator();
+                        if (UI.Button("Close"))
+                            moreInfoState = MoreInfoState.collapsed;
+                        if (Main.menuState == Main.MenuState.EditNodes)
+                        {
+                            Main.keyboardInput.Update(id + "notes", true, UI.LayoutAt, Quat.Identity, -.04f, ref activeState.notes);
+                            forceDraw = true;
+                        }
+
                         UI.WindowEnd();
-                    }
-
-                    break;
-
-                case MoreInfoState.expanded:
-                    moreInfoPose.position = moreInfoPose.position + (moreInfoPose.orientation * Vec3.Forward) * .02f;
-                    UI.WindowBegin("MoreInfo", ref moreInfoPose, UIWin.Body);
-                    notesSize = Text.Size(activeState.notes, Main.generalTextStyle);
-                    if (Main.menuState == Main.MenuState.EditNodes)
-                        notesSize.x = MathF.Max(.25f, notesSize.x);
-                    else
-                        notesSize.x = MathF.Max(.1f, notesSize.x);
-                    notesSize.y = MathF.Max(.01f, notesSize.y + .003f);
-                    if (Main.menuState == Main.MenuState.EditNodes)
-                        UI.Label("Type notes here. The box will expand to fit the width and height");
-                    UI.LayoutReserve(notesSize);
-
-                    Mesh.Cube.Draw(Material.Unlit,
-                        Matrix.TRS(UI.LayoutLast.center + Vec3.Forward * .001f, Quat.Identity, UI.LayoutLast.dimensions + V.XYZ(.01f,.01f,0)),
-                        Color.White);
-                        
-                    Text.Add(activeState.notes, Matrix.T(UI.LayoutLast.center + Vec3.Forward * .002f), notesSize, 
-                        TextFit.Clip, Main.generalTextStyle,
-                        TextAlign.Center, TextAlign.TopLeft);
-
-                    actions.Draw();
-
-
-                    UI.HSeparator();
-                    if (UI.Button("Close"))
-                        moreInfoState = MoreInfoState.collapsed;
-                    if (Main.menuState == Main.MenuState.EditNodes)
-                    {
-                        Main.keyboardInput.Update(id + "notes", true, UI.LayoutAt, Quat.Identity, -.04f, ref activeState.notes);
-                        forceDraw = true;
-                    }
-
-                    UI.WindowEnd();
 
                         
 
-                    break;
+                        break;
 
-                case MoreInfoState.editActions:
-                    actions.EditActions(moreInfoPose);
-                    break;
-            }
+                    case MoreInfoState.editActions:
+                        actions.EditActions(ref moreInfoWindowPose);
+                        break;
+                }
                 
+            }
+
+            DrawLines();
+            propertiesDisplayed = false;
+
+            if (Main.menuState == Main.MenuState.EditNodes)
+            {
+                if (inFocus || editState != EditState.ready)
+                    MakeEditable();
+
+            }
+            UI.PopId();
+
+            if (isLocation)
+            {
+                if (activeState.musicFilename != "")
+                    if (Main.musicInst.IsPlaying == false)
+                        Main.PlayMusicForLocation();
+            }
         }
-
-        DrawLines();
-        propertiesDisplayed = false;
-
-        if (Main.menuState == Main.MenuState.EditNodes)
-        {
-            if (inFocus || editState != EditState.ready)
-                MakeEditable();
-
-        }
-        UI.PopId();
-
-        if (isLocation)
-        {
-            if (activeState.musicFilename != "")
-                if (Main.musicInst.IsPlaying == false)
-                    Main.PlayMusicForLocation();
-        }
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private bool CheckIfMoreWindowRequired()
     {
-        if (Main.menuState == Main.MenuState.EditNodes ||
-            activeState.notes.Length > 0 || isPortal)
-            return true;
-            
+        try {
+            if (Main.editingNodeId > -1 && Main.menuState == Main.MenuState.EditNodes)
+                if (Main.editingNodeId != id || Main.editingNodeDescription != "MoreInfo")
+                    return false;
+
+            if (Main.menuState == Main.MenuState.EditNodes ||
+                activeState.notes.Length > 0 || isPortal)
+                return true;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
+
         return actions.DoActionsExist(activeStateKey);
 
     }
@@ -463,13 +486,15 @@ public class Node
 
     public Vec3 ClosestPoint(Vec3 lineSource)
     {
-        
-        if (Main.menuState == Main.MenuState.Play && visible == false)
-            return Vec3.Zero;
+        try {    
+            if (Main.menuState == Main.MenuState.Play && visible == false)
+                return Vec3.Zero;
 
-        lineDirection = (lineSource - pose.position).Normalized;
+            lineDirection = (lineSource - pose.position).Normalized;
 
-        newPoint = pose.position + lineDirection * radius;
+            newPoint = pose.position + lineDirection * radius;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
         return newPoint;
     }
@@ -530,7 +555,7 @@ public class Node
                                 {
                                     if (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, lineButtonPosition) < .5f)
                                     {
-                                        if (EditButton(lineButtonPosition, false, "M", true, relative.textOrientation))
+                                        if (EditButton("editLink", ChangeEditMode.setEditMode, lineButtonPosition, false, "M", true, relative.textOrientation))
                                         {
                                             editState = EditState.editingLink;
                                             editingLinkId = key;
@@ -540,7 +565,7 @@ public class Node
 
                                     if (Vec3.Distance(Input.Hand(Handed.Right).pinchPt, p1) < .5f)
                                     {
-                                        if (EditButton(p1 + Vec3.Up * .03f, false, "J", true, relative.textOrientation))
+                                        if (EditButton("deleteLink", ChangeEditMode.ignoreEditMode, p1 + Vec3.Up * .03f, false, "J", true, relative.textOrientation))
                                         {
                                             removeKey = key;
                                             actionCooldown = 1f;
@@ -553,7 +578,7 @@ public class Node
                                     Main.keyboardInput.Update(id + "link" + key, false, lineButtonPosition, relative.textOrientation, -.04f, ref relative.name);
                                     forceDraw = true;
 
-                                    if (EditButton(lineButtonPosition, false, "H", true, relative.textOrientation))
+                                    if (EditButton("editLink", ChangeEditMode.clearEditMode, lineButtonPosition, false, "H", true, relative.textOrientation))
                                     {
                                         ChangeActiveState(activeStateKey, true);
                                         editState = EditState.ready;
@@ -581,122 +606,170 @@ public class Node
     private Color lineColour = new Color(.2f, .2f, .2f, 1);
 
     private float actionCooldown = 0;
+    private int linkingHand;
     public void MakeEditable()
     {
-        Hand hand = Input.Hand(Handed.Right);
+        try {
 
-        AddHandle("Model Handle" + id);
+            if (Main.editingNodeId == -1)
+                AddHandle("Model Handle" + id);
 
-        if (hand.IsPinched == false && editState == EditState.linkingParent)
-        {
-            editState = EditState.ready;
-            if (Main.selectedNodeRightId != -1)
+            bool actioned = false;
+
+            for (int i = 0; i < 2; i++)
             {
-                if (Main.selectedNodeRightId != id)
+
+                Hand hand = Input.Hand(i);
+
+                if (editState == EditState.linkingParent && linkingHand == i)
                 {
-                    relatives[Main.selectedNodeRightId] = new Relative(Main.selectedNodeRightId,lineColour,"");
+                    if (hand.IsPinched == false)
+                    {
+                        editState = EditState.ready;
+                        Main.ResetEditingMode();
+                        if (Main.selectedNodes[i] != -1 && Main.selectedNodes[i] != id)
+                        {
+                            relatives[Main.selectedNodes[i]] = new Relative(Main.selectedNodes[i], lineColour, "");
+                        }
+                    }
+                    else
+                    {
+                        Lines.Add(parentDragPoint, hand.pinchPt, lineColour, .005f);
+                    }
                 }
             }
-        }
-        if (editState == EditState.linkingParent)
-        {
-            Lines.Add(parentDragPoint, hand.pinchPt, lineColour, .005f);
-        }
 
-        bool actioned = false;
-
-        if (editState == EditState.ready)
-        {
-            parentDragPoint = pose.position + pose.Right * ((dimensions.x/2) + .03f);
-            if (EditButton(parentDragPoint, true, "N", false, Quat.Identity))
+            if (editState == EditState.ready)
             {
-                actioned = true;
-                editState = EditState.linkingParent;
-            }
-        }
-
-        Vec3 position = titlePosition.Pose.position + pose.Up * (titleSize.y + .02f);
-        if (editState == EditState.ready)
-        {
-            if (EditButton(position, false, "M", false, Quat.Identity))
-            {
-                actioned = true;
-                editState = EditState.editingTitle;
-                actionCooldown = 1f;
-                if (activeState.name == Main.nameMe)
-                    activeState.name = "";
-
-            }
-        }
-        else
-        {
-            if (editState == EditState.editingTitle)
-            {
-                if (activeState.name == defaultName)
-                    activeState.name = "";
-                Main.keyboardInput.Update(id + "title", false, position, Quat.Identity, -.04f, ref activeState.name);
-                forceDraw = true;
-
-                if (isLocation)
+                parentDragPoint = pose.position + pose.Right * ((dimensions.x / 2) + .03f);
+                if (EditButton("linkNode", ChangeEditMode.setEditMode, parentDragPoint, true, "N", false, Quat.Identity))
                 {
-                    Main.LocationNames[id] = activeState.name;
-                }
-
-                if (EditButton(position, false, "H", false, Quat.Identity))
-                {
-                    if (activeState.name == "")
-                        activeState.name = GetDefaultName();
-                    ChangeActiveState(activeStateKey, true);
                     actioned = true;
-                    editState = EditState.ready;
+                    editState = EditState.linkingParent;
+                }
+            }
+
+            Vec3 position = titlePosition.Pose.position + pose.Up * (titleSize.y + .02f);
+            if (editState == EditState.ready)
+            {
+                if (EditButton("editTitle", ChangeEditMode.setEditMode, position, false, "M", false, Quat.Identity))
+                {
+                    actioned = true;
+                    editState = EditState.editingTitle;
                     actionCooldown = 1f;
+                    if (activeState.name == Main.nameMe)
+                        activeState.name = "";
 
                 }
-
             }
+            else
+            {
+                if (editState == EditState.editingTitle)
+                {
+                    if (activeState.name == defaultName)
+                        activeState.name = "";
+                    Main.keyboardInput.Update(id + "title", false, position, Quat.Identity, -.04f, ref activeState.name);
+                    forceDraw = true;
+
+                    if (isLocation)
+                    {
+                        Main.LocationNames[id] = activeState.name;
+                    }
+
+                    if (EditButton("editTitle", ChangeEditMode.clearEditMode, position, false, "H", false, Quat.Identity))
+                    {
+                        if (activeState.name == "")
+                            activeState.name = GetDefaultName();
+                        ChangeActiveState(activeStateKey, true);
+                        actioned = true;
+                        editState = EditState.ready;
+                        actionCooldown = 1f;
+
+                    }
+
+                }
+            }
+
+            if (actioned)
+                Default.SoundClick.Play(parentDragPoint);
         }
-
-
-        if (actioned)
-            Default.SoundClick.Play(parentDragPoint);
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
-    public bool EditButton(Vec3 target, bool needsPinch, string icon, bool ovedrideOrientation, Quat inOrientation)
+    public enum ChangeEditMode
     {
+        ignoreEditMode,
+        setEditMode,
+        clearEditMode
+    }
+    public bool EditButton(string description, ChangeEditMode editMode, Vec3 target, bool needsPinch, string icon, bool ovedrideOrientation, Quat inOrientation)
+    {
+        
         bool activated = false;
 
-        if (ovedrideOrientation == false)
-            inOrientation = pose.orientation;
+        try {
+            if (Main.editingNodeId > -1)
+                if (Main.editingNodeId != id || Main.editingNodeDescription != description)
+                    return false;
 
-        if (actionCooldown > 0 || draw == false)
-            return false;
-            
+            if (ovedrideOrientation == false)
+                inOrientation = pose.orientation;
 
-        Hand hand = Input.Hand(Handed.Right);
+            if (actionCooldown > 0 || draw == false)
+                return false;
 
-        float distance;
-        bool Highlight;
+            float distance;
+            bool Highlight = false;
 
-        //
-        // Drag point
-        //
-        distance = Vec3.Distance(needsPinch ? hand.pinchPt : hand[FingerId.Index, JointId.Tip].position, target);
-        Highlight = distance < .05f;
-
-        if (needsPinch) {
-            if (hand.IsPinched && Highlight)
-                activated = true;
-        } else
-        {
-            if (distance < .01f)
+            //
+            // Drag point
+            //
+            for (int i = 0; i < 2; i++)
             {
-                activated = true;
+                Hand hand = Input.Hand(i);
+                distance = Vec3.Distance(needsPinch ? hand.pinchPt : hand[FingerId.Index, JointId.Tip].position, target);
+                if (Highlight == false)
+                    Highlight = distance < .05f;
+
+                if (needsPinch)
+                {
+                    if (hand.IsJustPinched && Highlight)
+                    {
+                        activated = true;
+                        linkingHand = i;
+                    }
+                }
+                else
+                {
+                    if (distance < .01f)
+                    {
+                        activated = true;
+                    }
+                }
+            }
+            
+            Text.Add(icon, Matrix.TRS(target,
+                inOrientation, Highlight ? 1.1f : 1f), Main.iconTextStyle, TextAlign.Center, TextAlign.Center);
+
+            if (activated)
+            {
+                switch (editMode)
+                {
+                    case ChangeEditMode.clearEditMode:
+                        Main.ResetEditingMode();
+                        break;
+                    case ChangeEditMode.setEditMode:
+                        Main.editingNodeId = id;
+                        Main.editingNodeDescription = description;
+                        break;
+                    case ChangeEditMode.ignoreEditMode:
+                        break;
+                    default:
+                        break;
+                }
             }
         }
-            
-        Text.Add(icon, Matrix.TRS(target,
-            inOrientation, Highlight ? 1.1f : 1f), Main.iconTextStyle, TextAlign.Center, TextAlign.Center);
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
         return activated;
     }
@@ -721,322 +794,331 @@ public class Node
     public Vec2 MaxPropertyWidth = new Vec2(.15f, .001f);
     public void AddHandle(string name)
     {
-        if (draw)
-            Mesh.Cube.Draw(Material.UIBox, Matrix.TRS(pose.position, pose.orientation, dimensions));
-        Bounds b = new Bounds(dimensions);
-        grabbed = UI.Handle(name, ref pose, b);
+        try { 
+            if (draw)
+                Mesh.Cube.Draw(Material.UIBox, Matrix.TRS(pose.position, pose.orientation, dimensions));
+            Bounds b = new Bounds(dimensions);
+            grabbed = UI.Handle(name, ref pose, b);
 
-        if (draw)
-        {
-            propertiesPose.position = pose.position +
-                    (pose.Right * ((dimensions.x / 2f) + (MaxPropertyWidth.x/2)  + .01f) * -1)  +
-                    (pose.Up * (dimensions.y / 2f  + .04f)) +
-                    (pose.Forward * dimensions.z * .5f);
-
-            propertiesPose.orientation = pose.orientation;
-            bool showColours=false;
-
-            UI.WindowBegin("Properties", ref propertiesPose, UIWin.Empty);
-            UI.LayoutReserve(MaxPropertyWidth);
-
-            propertiesDisplayed = true;
-            int counter = 0;
-            switch (propertyState)
+            if (draw)
             {
-                case PropertyState.TopLevel:
-                    //UI.Toggle(rotateOnly?"Rotate only":"Move enabled", ref rotateOnly);
+                propertiesPose.position = pose.position +
+                        (pose.Right * ((dimensions.x / 2f) + (MaxPropertyWidth.x/2)  + .01f) * -1)  +
+                        (pose.Up * (dimensions.y / 2f  + .04f)) +
+                        (pose.Forward * dimensions.z * .5f);
+
+                propertiesPose.orientation = pose.orientation;
+                bool showColours=false;
+
+                UI.WindowBegin("Properties", ref propertiesPose, UIWin.Empty);
+                UI.LayoutReserve(MaxPropertyWidth);
+
+                propertiesDisplayed = true;
+                int counter = 0;
+                switch (propertyState)
+                {
+                    case PropertyState.TopLevel:
+                        //UI.Toggle(rotateOnly?"Rotate only":"Move enabled", ref rotateOnly);
                     
-                    if (isPortal)
-                    {
-                        if (UI.Button("Set destination"))
+                        if (isPortal)
                         {
-                            propertyState = PropertyState.BrowsingDestinations;
+                            if (UI.Button("Set destination"))
+                            {
+                                propertyState = PropertyState.BrowsingDestinations;
+                            }
                         }
-                    }
-                    if (isLocation)
-                    {
-                        if (UI.Button("Set Music"))
+                        if (isLocation)
                         {
-                            propertyState = PropertyState.BrowsingMusic;
+                            if (UI.Button("Set Music"))
+                            {
+                                propertyState = PropertyState.BrowsingMusic;
+                            }
                         }
-                    }
 
-                    if (UI.Button("Select 3d Model"))
-                    {
-                        propertyState = PropertyState.BrowsingShapes;
-                    }
+                        if (UI.Button("Select 3d Model"))
+                        {
+                            propertyState = PropertyState.BrowsingShapes;
+                        }
  
-                    if (UI.Button("Select 2d Image") && !Platform.FilePickerVisible)
-                    {
-                        propertyState = PropertyState.BrowsingImages;
-     
-                    }
-                    if (UI.Button("Change Color"))
-                        propertyState = PropertyState.SelectColour;
-
-                    if (UI.Button("Advanced"))
-                        propertyState = PropertyState.Advanced;
-
-                    break;
-
-                case PropertyState.Advanced:
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
-                    UI.SameLine();
-
-                    UI.Toggle((visibleAtStart ? "Visible at start" : "Hidden at start"), ref visibleAtStart);
-
-                    Text.Add("Create multiple states for a node,\nthen add buttons and logic in [More]\nallowing users to cause state changes.",
-                        Matrix.Identity, Main.generalTextStyle,TextAlign.BottomLeft, TextAlign.TopLeft, .07f, 0.00f);
-
-
-                    State[] aStates = states.Values.ToArray();
-
-                    int lineCount = 0;
-                    if (advancedStartAt >= states.Count)
-                        advancedStartAt = Math.Max(0, advancedStartAt - 3);
-
-
-                    if (actionCooldown == 0)
-                    {
-                        foreach (State s in aStates)
+                        if (UI.Button("Select 2d Image") && !Platform.FilePickerVisible)
                         {
-                            if (lineCount >= advancedStartAt && lineCount < advancedStartAt + 3) {
-                                if (UI.Button("Show state " + s.id))
-                                    ChangeActiveState(s.id, true);
-                                if (states.Count > 1)
-                                {
-                                    UI.SameLine();
-                                    if (UI.Button("Delete state " + s.id))
+                            propertyState = PropertyState.BrowsingImages;
+     
+                        }
+                        if (UI.Button("Change Color"))
+                            propertyState = PropertyState.SelectColour;
+
+                        if (UI.Button("Advanced"))
+                            propertyState = PropertyState.Advanced;
+
+                        break;
+
+                    case PropertyState.Advanced:
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
+                        UI.SameLine();
+
+                        UI.Toggle((visibleAtStart ? "Visible at start" : "Hidden at start"), ref visibleAtStart);
+
+                        Text.Add("Create multiple states for a node,\nthen add buttons and logic in [More]\nallowing users to cause state changes.",
+                            Matrix.Identity, Main.generalTextStyle,TextAlign.BottomLeft, TextAlign.TopLeft, .07f, 0.00f);
+
+
+                        State[] aStates = states.Values.ToArray();
+
+                        int lineCount = 0;
+                        if (advancedStartAt >= states.Count)
+                            advancedStartAt = Math.Max(0, advancedStartAt - 3);
+
+
+                        if (actionCooldown == 0)
+                        {
+                            foreach (State s in aStates)
+                            {
+                                if (lineCount >= advancedStartAt && lineCount < advancedStartAt + 3) {
+                                    if (UI.Button("Show state " + s.id))
+                                        ChangeActiveState(s.id, true);
+                                    if (states.Count > 1)
                                     {
-                                        ChangeActiveState(activeStateKey, true); // update data first, we may then delete this one
-                                        actionCooldown = .5f;
-                                        states.Remove(s.id);
-                                        ChangeActiveState(states.Keys.ToArray()[0], false);
+                                        UI.SameLine();
+                                        if (UI.Button("Delete state " + s.id))
+                                        {
+                                            ChangeActiveState(activeStateKey, true); // update data first, we may then delete this one
+                                            actionCooldown = .5f;
+                                            states.Remove(s.id);
+                                            ChangeActiveState(states.Keys.ToArray()[0], false);
+                                        }
                                     }
                                 }
+                                lineCount++;
                             }
-                            lineCount++;
-                        }
                             
-                        if (advancedStartAt > 0) { 
-                            if (UI.Button("< Previous"))
+                            if (advancedStartAt > 0) { 
+                                if (UI.Button("< Previous"))
+                                {
+                                    advancedStartAt -= 3;
+                                    advancedStartAt = Math.Max(0, advancedStartAt);
+                                }
+                            }
+                            if (lineCount > advancedStartAt + 3)
                             {
-                                advancedStartAt -= 3;
-                                advancedStartAt = Math.Max(0, advancedStartAt);
+                                if (advancedStartAt > 0)
+                                    UI.SameLine();
+                                if (UI.Button("Next >"))
+                                    advancedStartAt += 3;
+                            }
+                            if (UI.Button("Duplicate current state"))
+                            {
+                                State newState = new State(); // create new
+                                newState = activeState; // copy active
+                                newState.id = maxStateKey; // update id
+                                states[maxStateKey] = newState;
+                                ChangeActiveState(maxStateKey, true);
+                                maxStateKey++;
+                                actionCooldown = .5f;
                             }
                         }
-                        if (lineCount > advancedStartAt + 3)
+                        break;
+                        
+                    case PropertyState.BrowsingMusic:
+
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
+
+                        UI.SameLine();
+
+                        if (UI.Button("Open music...") && !Platform.FilePickerVisible)
                         {
-                            if (advancedStartAt > 0)
+                            Platform.FilePicker(PickerMode.Open, OnLoadMusic, OnCancelLoad,
+                                ".wav", ".mp3");
+                            propertyState = PropertyState.LoadingAsset;
+                        }
+
+                        if (UI.Button("No music"))
+                        {
+                            activeState.musicFilename = "";
+                            Main.StopMusic();
+                        }
+
+                        foreach (Node.NodeModel nodeModel in Main.standardMusic)
+                        {
+                            if (UI.Button(nodeModel.name))
+                                OnLoadStandardMusic(nodeModel.filename);
+                            if (counter < 2)
                                 UI.SameLine();
-                            if (UI.Button("Next >"))
-                                advancedStartAt += 3;
+                            counter++;
+                            counter %= 3;
                         }
-                        if (UI.Button("Duplicate current state"))
+                        break;
+
+                    case PropertyState.BrowsingShapes:
+                        
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
+                        
+                        UI.SameLine();
+
+                        if (UI.Button("Open model...") && !Platform.FilePickerVisible)
                         {
-                            State newState = new State(); // create new
-                            newState = activeState; // copy active
-                            newState.id = maxStateKey; // update id
-                            states[maxStateKey] = newState;
-                            ChangeActiveState(maxStateKey, true);
-                            maxStateKey++;
-                            actionCooldown = .5f;
+                            Platform.FilePicker(PickerMode.Open, OnLoadModel, OnCancelLoad,
+                                ".gltf", ".glb", ".obj", ".stl", ".ply");
+                            propertyState = PropertyState.LoadingAsset;
                         }
-                    }
-                    break;
-                        
-                case PropertyState.BrowsingMusic:
-
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
-
-                    UI.SameLine();
-
-                    if (UI.Button("Open music...") && !Platform.FilePickerVisible)
-                    {
-                        Platform.FilePicker(PickerMode.Open, OnLoadMusic, OnCancelLoad,
-                            ".wav", ".mp3");
-                        propertyState = PropertyState.LoadingAsset;
-                    }
-
-                    if (UI.Button("No music"))
-                    {
-                        activeState.musicFilename = "";
-                        Main.StopMusic();
-                    }
-
-                    foreach (Node.NodeModel nodeModel in Main.standardMusic)
-                    {
-                        if (UI.Button(nodeModel.name))
-                            OnLoadStandardMusic(nodeModel.filename);
-                        if (counter < 2)
-                            UI.SameLine();
-                        counter++;
-                        counter %= 3;
-                    }
-                    break;
-
-                case PropertyState.BrowsingShapes:
-                        
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
-                        
-                    UI.SameLine();
-
-                    if (UI.Button("Open model...") && !Platform.FilePickerVisible)
-                    {
-                        Platform.FilePicker(PickerMode.Open, OnLoadModel, OnCancelLoad,
-                            ".gltf", ".glb", ".obj", ".stl", ".ply");
-                        propertyState = PropertyState.LoadingAsset;
-                    }
 
 
 
-                    foreach (Node.NodeModel nodeModel in Main.standardModels)
-                    {
-                        if (UI.Button(nodeModel.name))
-                            OnLoadStandardModel(nodeModel.filename);
-                        if (counter < 2)
-                            UI.SameLine();
-                        counter++;
-                        counter %= 3;
-                    }
-                    break;
+                        foreach (Node.NodeModel nodeModel in Main.standardModels)
+                        {
+                            if (UI.Button(nodeModel.name))
+                                OnLoadStandardModel(nodeModel.filename);
+                            if (counter < 2)
+                                UI.SameLine();
+                            counter++;
+                            counter %= 3;
+                        }
+                        break;
 
-                case PropertyState.BrowsingImages:
+                    case PropertyState.BrowsingImages:
 
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
 
-                    UI.SameLine();
+                        UI.SameLine();
 
-                    if (UI.Button("Open image...") && !Platform.FilePickerVisible)
-                    {
-                        Platform.FilePicker(PickerMode.Open, OnLoadImage, OnCancelLoad,
-                            ".jpg", ".png", ".tga", ".bmp", ".psd", ".gif", ".hdr", ".pic");
-                        propertyState = PropertyState.LoadingAsset;
-                    }
+                        if (UI.Button("Open image...") && !Platform.FilePickerVisible)
+                        {
+                            Platform.FilePicker(PickerMode.Open, OnLoadImage, OnCancelLoad,
+                                ".jpg", ".png", ".tga", ".bmp", ".psd", ".gif", ".hdr", ".pic");
+                            propertyState = PropertyState.LoadingAsset;
+                        }
 
-                    foreach (Node.NodeModel nodeModel in Main.standardImages)
-                    {
-                        if (UI.Button(nodeModel.name))
-                            OnLoadStandardImage(nodeModel.filename);
-                        if (counter < 2)
-                            UI.SameLine();
-                        counter++;
-                        counter %= 3;
-                    }
-                    break;
+                        foreach (Node.NodeModel nodeModel in Main.standardImages)
+                        {
+                            if (UI.Button(nodeModel.name))
+                                OnLoadStandardImage(nodeModel.filename);
+                            if (counter < 2)
+                                UI.SameLine();
+                            counter++;
+                            counter %= 3;
+                        }
+                        break;
 
 
-                case PropertyState.SelectColour:
-                    Vec3 hsv = activeState.color.ToHSV();
-                    SetColor(hsv.x, hsv.y, hsv.z);
+                    case PropertyState.SelectColour:
+                        Vec3 hsv = activeState.color.ToHSV();
+                        SetColor(hsv.x, hsv.y, hsv.z);
 
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
 
-                    // Swatches are never enough by themselves! So here's some sliders to
-                    // let the user HSV their color manually. We start with a fixed size
-                    // label, and on the same line add a fixed size slider. Fixing the
-                    // sizes here helps them to line up in columns.
-                    float lineHeightAdj = UI.LineHeight * 1f;
-                    UI.Label("Hue", V.XY(4 * U.cm, lineHeightAdj));
-                    UI.SameLine();
-                    if (UI.HSlider("Hue", ref _hue, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
-                        SetColor(_hue, _saturation, _value);
+                        // Swatches are never enough by themselves! So here's some sliders to
+                        // let the user HSV their color manually. We start with a fixed size
+                        // label, and on the same line add a fixed size slider. Fixing the
+                        // sizes here helps them to line up in columns.
+                        float lineHeightAdj = UI.LineHeight * 1f;
+                        UI.Label("Hue", V.XY(4 * U.cm, lineHeightAdj));
+                        UI.SameLine();
+                        if (UI.HSlider("Hue", ref _hue, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
+                            SetColor(_hue, _saturation, _value);
 
-                    UI.Label("Sat.", V.XY(4 * U.cm, lineHeightAdj));
-                    UI.SameLine();
-                    if (UI.HSlider("Saturation", ref _saturation, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
-                        SetColor(_hue, _saturation, _value);
+                        UI.Label("Sat.", V.XY(4 * U.cm, lineHeightAdj));
+                        UI.SameLine();
+                        if (UI.HSlider("Saturation", ref _saturation, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
+                            SetColor(_hue, _saturation, _value);
 
-                    UI.Label("Val.", V.XY(4 * U.cm, lineHeightAdj));
-                    UI.SameLine();
-                    if (UI.HSlider("Value", ref _value, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
-                        SetColor(_hue, _saturation, _value);
+                        UI.Label("Val.", V.XY(4 * U.cm, lineHeightAdj));
+                        UI.SameLine();
+                        if (UI.HSlider("Value", ref _value, 0, 1, 0, 10 * U.cm, UIConfirm.Pinch))
+                            SetColor(_hue, _saturation, _value);
 
-                    showColours = true;
-                    break;
+                        showColours = true;
+                        break;
 
-                case PropertyState.BrowsingDestinations:
+                    case PropertyState.BrowsingDestinations:
 
-                    if (UI.Button("<"))
-                        propertyState = PropertyState.TopLevel;
-                    UI.SameLine();
-                    if (UI.Button("New location"))
-                        destinationId = 0;
+                        if (UI.Button("<"))
+                            propertyState = PropertyState.TopLevel;
+                        UI.SameLine();
+                        if (UI.Button("New location"))
+                            destinationId = 0;
 
                         
-                    foreach (KeyValuePair<int,string> kvp in Main.LocationNames)
-                    {
-                        if (UI.Button(kvp.Value))
-                            destinationId = kvp.Key;
-                        if (counter < 2)
-                            UI.SameLine();
-                        counter++;
-                        counter %= 3;
-                    }
-                    break;
+                        foreach (KeyValuePair<int,string> kvp in Main.LocationNames)
+                        {
+                            if (UI.Button(kvp.Value))
+                                destinationId = kvp.Key;
+                            if (counter < 2)
+                                UI.SameLine();
+                            counter++;
+                            counter %= 3;
+                        }
+                        break;
 
 
 
-            }
+                }
 
-            UI.WindowEnd();
-
-            if (showColours)
-            {
-                workPose2.position = propertiesPose.position + propertiesPose.Forward * - .05f + propertiesPose.Up * -.12f;
-                workPose2.orientation = propertiesPose.orientation;
-                UI.WindowBegin("Properties", ref workPose2, UIWin.Empty);
-                UI.LayoutReserve(MaxPropertyWidth);
-                UI.Space(.03f);
-                SwatchColor("White", _hue, 0, 1);
-                UI.SameLine();
-                SwatchColor("Blk", _hue, 0, SK.System.displayType == Display.Additive ? 0.25f : 0);
-                UI.SameLine();
-                SwatchColor("Green", .33f, .9f, 1);
-                UI.SameLine();
-                SwatchColor("Ylw", .14f, .9f, 1);
-                UI.SameLine();
-                SwatchColor("Blue", .66f, .9f, 1);
                 UI.WindowEnd();
+
+                if (showColours)
+                {
+                    workPose2.position = propertiesPose.position + propertiesPose.Forward * - .05f + propertiesPose.Up * -.12f;
+                    workPose2.orientation = propertiesPose.orientation;
+                    UI.WindowBegin("Properties", ref workPose2, UIWin.Empty);
+                    UI.LayoutReserve(MaxPropertyWidth);
+                    UI.Space(.03f);
+                    SwatchColor("White", _hue, 0, 1);
+                    UI.SameLine();
+                    SwatchColor("Blk", _hue, 0, SK.System.displayType == Display.Additive ? 0.25f : 0);
+                    UI.SameLine();
+                    SwatchColor("Green", .33f, .9f, 1);
+                    UI.SameLine();
+                    SwatchColor("Ylw", .14f, .9f, 1);
+                    UI.SameLine();
+                    SwatchColor("Blue", .66f, .9f, 1);
+                    UI.WindowEnd();
+                }
             }
         }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     private Vec2 swatchSize = new Vec2(.015f, .03f);
     private Vec3 swatchDimensions = new Vec3(.015f, .02f, .002f);
     private void SwatchColor(string id, float hue, float saturation, float value)
     {
-        // Reserve a spot for this swatch!
-        Bounds bounds = UI.LayoutReserve(swatchSize);
-        bounds.dimensions.z = U.cm * 4;
+        try { 
+            // Reserve a spot for this swatch!
+            Bounds bounds = UI.LayoutReserve(swatchSize);
+            bounds.dimensions.z = U.cm * 4;
 
-        Mesh.GenerateCube(swatchDimensions).Draw(Default.Material,Matrix.T(bounds.center), Color.HSV(hue, saturation, value));
+            Mesh.GenerateCube(swatchDimensions).Draw(Default.Material,Matrix.T(bounds.center), Color.HSV(hue, saturation, value));
 
-        // If the users interacts with the volume the swatch model is in,
-        // then we'll set the active color right here, and play some sfx!
-        BtnState state = UI.VolumeAt(id, bounds, UIConfirm.Push);
-        if (state.IsJustActive())
-        {
-            Sound.Click.Play(Hierarchy.ToWorld(bounds.center));
-            SetColor(hue, saturation, value);
+            // If the users interacts with the volume the swatch model is in,
+            // then we'll set the active color right here, and play some sfx!
+            BtnState state = UI.VolumeAt(id, bounds, UIConfirm.Push);
+            if (state.IsJustActive())
+            {
+                Sound.Click.Play(Hierarchy.ToWorld(bounds.center));
+                SetColor(hue, saturation, value);
+            }
+            if (state.IsJustInactive())
+                Sound.Unclick.Play(Hierarchy.ToWorld(bounds.center));
         }
-        if (state.IsJustInactive())
-            Sound.Unclick.Play(Hierarchy.ToWorld(bounds.center));
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     void SetColor(float hue, float saturation, float value)
     {
-        _hue = hue;
-        _saturation = saturation;
-        _value = value;
-        activeState.color = Color.HSV(hue, saturation, value);
+        try { 
+            _hue = hue;
+            _saturation = saturation;
+            _value = value;
+            activeState.color = Color.HSV(hue, saturation, value);
 
-        //model.RootNode.Material[MatParamName.ColorTint] = color;
+            //model.RootNode.Material[MatParamName.ColorTint] = color;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
     }
 
@@ -1058,38 +1140,53 @@ public class Node
 
     public void OnLoadMusic(string filename)
     {
-        activeState.musicFilename = filename;
-        Main.PlayMusicForLocation();
-        propertyState = PropertyState.TopLevel;
+        try { 
+            activeState.musicFilename = filename;
+            Main.PlayMusicForLocation();
+            propertyState = PropertyState.TopLevel;
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void OnLoadImage(string filename)
     {
-        activeState.spriteFilename = filename;
-        sprite = Sprite.FromFile(filename,SpriteType.Single);
-        propertyState = PropertyState.TopLevel;
-        activeState.modelFilename = "";
+        try { 
+            activeState.spriteFilename = filename;
+            sprite = Sprite.FromFile(filename,SpriteType.Single);
+            propertyState = PropertyState.TopLevel;
+            activeState.modelFilename = "";
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
         
 
     public void OnLoadStandardModel(string filename)
     {
-        activeState.modelFilename = filename;
-        activeState.spriteFilename = "";
-        model = Model.FromFile(filename);
+        try { 
+            activeState.modelFilename = filename;
+            activeState.spriteFilename = "";
+            model = Model.FromFile(filename);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void OnLoadStandardMusic(string filename)
     {
-        activeState.musicFilename = filename;
-        Main.PlayMusicForLocation();
+        try { 
+            activeState.musicFilename = filename;
+            Main.PlayMusicForLocation();
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void OnLoadStandardImage(string filename)
     {
-        activeState.spriteFilename = filename;
-        activeState.modelFilename = "";
-        sprite = Sprite.FromFile(filename,SpriteType.Single);
+        try { 
+            activeState.spriteFilename = filename;
+            activeState.modelFilename = "";
+            sprite = Sprite.FromFile(filename,SpriteType.Single);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
     public void OnCancelLoad()
@@ -1099,49 +1196,55 @@ public class Node
 
     public void InitForNewPlay(bool saveChangesInEditMode)
     {
-        moreInfoState = MoreInfoState.collapsed;
-        visible = visibleAtStart;
-        available = true;
-        ChangeActiveState(states.Keys.ToArray()[0], saveChangesInEditMode);
+        try { 
+            moreInfoState = MoreInfoState.collapsed;
+            visible = visibleAtStart;
+            available = true;
+            ChangeActiveState(states.Keys.ToArray()[0], saveChangesInEditMode);
+        }
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 
 
     public string Serialise()
     {
-        ChangeActiveState(activeStateKey,true); //Update states
-
         List<string> str = new List<string>();
-        str.Add(SH.Serialise(id));
-        str.Add(SH.Serialise(visibleAtStart));
-        str.Add(SH.Serialise(isLocation));
-        str.Add(SH.Serialise(isPortal));
-        str.Add(SH.Serialise(locationId));
-        str.Add(SH.Serialise(destinationId));
-        str.Add(SH.Serialise(pose));
-        str.Add(SH.Serialise(health));
+
+        try { 
+            ChangeActiveState(activeStateKey,true); //Update states
+
+            str.Add(SH.Serialise(id));
+            str.Add(SH.Serialise(visibleAtStart));
+            str.Add(SH.Serialise(isLocation));
+            str.Add(SH.Serialise(isPortal));
+            str.Add(SH.Serialise(locationId));
+            str.Add(SH.Serialise(destinationId));
+            str.Add(SH.Serialise(pose));
+            str.Add(SH.Serialise(health));
             
-        List<string> subStr = new List<string>();
-        // States
-        foreach (KeyValuePair<int,State> kvp in states)
-        {
-            subStr.Add(SH.Serialise(kvp.Key) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.name) + SH.arrayElementSeperator + 
-                SH.Serialise(kvp.Value.color) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.notes) + SH.arrayElementSeperator +
-                SH.Serialise(kvp.Value.modelFilename) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.spriteFilename) + SH.arrayElementSeperator +
-                SH.Serialise(kvp.Value.musicFilename) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.nodeScale));
+            List<string> subStr = new List<string>();
+            // States
+            foreach (KeyValuePair<int,State> kvp in states)
+            {
+                subStr.Add(SH.Serialise(kvp.Key) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.name) + SH.arrayElementSeperator + 
+                    SH.Serialise(kvp.Value.color) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.notes) + SH.arrayElementSeperator +
+                    SH.Serialise(kvp.Value.modelFilename) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.spriteFilename) + SH.arrayElementSeperator +
+                    SH.Serialise(kvp.Value.musicFilename) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.nodeScale));
+            }
+            str.Add(string.Join(SH.arraySeperator, subStr.ToArray()));
+
+            // Relatives
+            subStr = new List<string>();
+            foreach (KeyValuePair <int,Relative> kvp in relatives)
+            {
+                subStr.Add(SH.Serialise(kvp.Value.id) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.name) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.color));
+            }
+            str.Add(string.Join(SH.arraySeperator, subStr.ToArray()));
+
+            // Actions
+            str.Add(string.Join(SH.arraySeperator, actions.Serialise()));
         }
-        str.Add(string.Join(SH.arraySeperator, subStr.ToArray()));
-
-        // Relatives
-        subStr = new List<string>();
-        foreach (KeyValuePair <int,Relative> kvp in relatives)
-        {
-            subStr.Add(SH.Serialise(kvp.Value.id) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.name) + SH.arrayElementSeperator + SH.Serialise(kvp.Value.color));
-        }
-        str.Add(string.Join(SH.arraySeperator, subStr.ToArray()));
-
-        // Actions
-        str.Add(string.Join(SH.arraySeperator, actions.Serialise()));
-
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
 
         return string.Join(SH.topLevelSeperator, str.ToArray());
 
@@ -1151,65 +1254,70 @@ public class Node
 
     public void UnSerialise(string data)
     {
-        int i=0;
-        Color col = new Color();
-        string s = "";
-
-
-        string[] p = data.Split(SH.topLevelSeperator);
-
-        int inx = 0;
-        SH.UnSerialise(p[inx++], ref id);
-        SH.UnSerialise(p[inx++], ref visibleAtStart);
-        SH.UnSerialise(p[inx++], ref isLocation);
-        SH.UnSerialise(p[inx++], ref isPortal);
-        SH.UnSerialise(p[inx++], ref locationId);
-        SH.UnSerialise(p[inx++], ref destinationId);
-        SH.UnSerialise(p[inx++], ref pose);
-        SH.UnSerialise(p[inx++], ref health);
-
-        string[] subStr = p[inx++].Split(SH.arraySeperator);
-        string[] bits;
-
-        // States
-        states = new SortedDictionary<int, State>();
-        State newState;
-        foreach (string str in subStr)
+        try
         {
-            bits = str.Split(SH.arrayElementSeperator);
-            newState = new State();
-
-            SH.UnSerialise(bits[0], ref newState.id);
-            SH.UnSerialise(bits[1], ref newState.name);
-            SH.UnSerialise(bits[2], ref newState.color);
-            SH.UnSerialise(bits[3], ref newState.notes);
-            SH.UnSerialise(bits[4], ref newState.modelFilename);
-            SH.UnSerialise(bits[5], ref newState.spriteFilename);
-            SH.UnSerialise(bits[6], ref newState.musicFilename);
-            SH.UnSerialise(bits[7], ref newState.nodeScale);
-            states.Add(newState.id,newState);
-        }
-        maxStateKey = states.Keys.ToArray().Max() +1;
+            int i = 0;
+            Color col = new Color();
+            string s = "";
 
 
-        //Relatives
-        subStr = p[inx++].Split(SH.arraySeperator);
-        relatives = new Dictionary<int, Relative>();
-        foreach (string str in subStr)
-        {
-            bits = str.Split(SH.arrayElementSeperator);
-            if (bits.Length == 3) {
-                SH.UnSerialise(bits[0], ref i);
-                SH.UnSerialise(bits[1], ref s);
-                SH.UnSerialise(bits[2], ref col);
-                if (relatives.ContainsKey(i) == false)
-                    relatives.Add(i, new Relative(i, col, s));
+            string[] p = data.Split(SH.topLevelSeperator);
+
+            int inx = 0;
+            SH.UnSerialise(p[inx++], ref id);
+            SH.UnSerialise(p[inx++], ref visibleAtStart);
+            SH.UnSerialise(p[inx++], ref isLocation);
+            SH.UnSerialise(p[inx++], ref isPortal);
+            SH.UnSerialise(p[inx++], ref locationId);
+            SH.UnSerialise(p[inx++], ref destinationId);
+            SH.UnSerialise(p[inx++], ref pose);
+            SH.UnSerialise(p[inx++], ref health);
+
+            string[] subStr = p[inx++].Split(SH.arraySeperator);
+            string[] bits;
+
+            // States
+            states = new SortedDictionary<int, State>();
+            State newState;
+            foreach (string str in subStr)
+            {
+                bits = str.Split(SH.arrayElementSeperator);
+                newState = new State();
+
+                SH.UnSerialise(bits[0], ref newState.id);
+                SH.UnSerialise(bits[1], ref newState.name);
+                SH.UnSerialise(bits[2], ref newState.color);
+                SH.UnSerialise(bits[3], ref newState.notes);
+                SH.UnSerialise(bits[4], ref newState.modelFilename);
+                SH.UnSerialise(bits[5], ref newState.spriteFilename);
+                SH.UnSerialise(bits[6], ref newState.musicFilename);
+                SH.UnSerialise(bits[7], ref newState.nodeScale);
+                states.Add(newState.id, newState);
             }
+            maxStateKey = states.Keys.ToArray().Max() + 1;
+
+
+            //Relatives
+            subStr = p[inx++].Split(SH.arraySeperator);
+            relatives = new Dictionary<int, Relative>();
+            foreach (string str in subStr)
+            {
+                bits = str.Split(SH.arrayElementSeperator);
+                if (bits.Length == 3)
+                {
+                    SH.UnSerialise(bits[0], ref i);
+                    SH.UnSerialise(bits[1], ref s);
+                    SH.UnSerialise(bits[2], ref col);
+                    if (relatives.ContainsKey(i) == false)
+                        relatives.Add(i, new Relative(i, col, s));
+                }
+            }
+
+            if (inx < p.Length)
+                actions.UnSerialise(p[inx++]);
+
+            ChangeActiveState(states.Keys.ToArray()[0], false);
         }
-
-        if (inx < p.Length)
-            actions.UnSerialise(p[inx++]);
-
-        ChangeActiveState(states.Keys.ToArray()[0], false);
+        catch (Exception ex) { Log.Err(ex.Source + ":" + ex.Message); }
     }
 }
